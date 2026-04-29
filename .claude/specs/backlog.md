@@ -43,6 +43,8 @@ The current product is a **single hi-fi retro board** that lives at the app root
   - All reads/writes go through a single store module (e.g. `app/_data/store.ts`) that hydrates from `localStorage` on mount and writes through on every mutation (debounced 300ms).
   - Seed data (current `COLUMNS` + `BOARD`) is inserted on first launch only.
   - Schema version stamp is stored so future migrations are possible.
+  - `Board` includes a stable seeded `color` field used by the sidebar swatch and the boards-list theme stripe; not user-editable in v1.
+  - `updatedAt` is bumped on any mutation within the board's tree: card add/edit/delete/archive/move, column add/rename/delete/reorder, board title/theme edit, label CRUD, retro vote toggle.
 - **Out of scope for v1:** server sync, conflict resolution, real users.
 - **Backend follow-up:** swap `localStorage` driver for an API client; same store interface.
 
@@ -61,6 +63,7 @@ The current product is a **single hi-fi retro board** that lives at the app root
   - Clicking a board navigates to its detail page.
   - Empty state: "No boards yet. Create one to get started." with primary CTA.
   - Sidebar "Boards" item links here; sidebar "Retros" list filters to retro-type boards.
+  - Board card kebab menu in F-02 ships with only `Star`/`Unstar` and `Open in new tab`; archive/reopen/unarchive entries land with their owning features (F-17/F-18).
 - **Out of scope for v1:** team/workspace switching, board sharing UI.
 
 ---

@@ -173,6 +173,13 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 }
 .state-pill.open { color: var(--status-emerald); border-color: rgba(16,185,129,0.25); background: rgba(16,185,129,0.06); }
 .state-pill.closed { color: var(--fg4); }
+.state-pill.kanban { color: var(--fg3); }
+.state-pill.retro {
+  color: var(--brand-violet-hi);
+  border-color: rgba(94,106,210,0.25);
+  background: rgba(94,106,210,0.08);
+}
+.state-pill.archived { color: var(--fg4); }
 
 /* ---------- presence + header right ---------- */
 .presence { display: flex; align-items: center; }
@@ -501,3 +508,138 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   100% { opacity: 1; transform: translateY(0); }
 }
 .card.new { animation: card-in 360ms ease-out; }
+
+/* ---------- boards list (F-02) ---------- */
+.boards-page {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 28px;
+  padding: 22px 24px 40px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.boards-page-head {
+  display: flex; align-items: center; gap: 12px;
+  flex: 1;
+}
+.boards-page-title {
+  margin: 0;
+  font-size: 14px; font-weight: 590; letter-spacing: -0.15px;
+  color: var(--fg1);
+}
+.boards-page-spacer { flex: 1; }
+
+.board-section { display: flex; flex-direction: column; }
+
+.section-title {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 0 10px;
+  background: transparent; border: 0;
+  font-size: 11px; font-weight: 510; color: var(--fg4);
+  text-transform: uppercase; letter-spacing: 0.7px;
+  cursor: pointer;
+}
+.section-title:hover { color: var(--fg2); }
+.section-caret {
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: transform 120ms ease;
+}
+.section-title.collapsed .section-caret { transform: rotate(-90deg); }
+.section-label { line-height: 1; }
+.section-count {
+  font-family: var(--font-mono); font-size: 10px; color: var(--fg4);
+  letter-spacing: 0; text-transform: none;
+}
+
+.section-empty {
+  font-size: 12px; color: var(--fg4); padding: 4px 2px 0;
+}
+
+.board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+  gap: 12px;
+  max-width: 1080px;
+}
+
+.board-card {
+  position: relative;
+  display: flex; flex-direction: column; gap: 6px;
+  min-height: 96px;
+  padding: 12px 14px 11px;
+  background: var(--surface-02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+.board-card:hover {
+  background: var(--surface-04);
+  border-color: var(--border-standard);
+  transform: translateY(-1px);
+}
+.board-card:focus-visible {
+  outline: 1px solid var(--brand-indigo);
+  outline-offset: 2px;
+}
+.board-card:active { transform: none; }
+.board-card.dimmed { opacity: 0.65; }
+
+.board-card-star {
+  position: absolute;
+  top: 10px; left: 12px;
+  width: 18px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 3px;
+  color: var(--fg4);
+  transition: color 120ms ease, background 120ms ease;
+}
+.board-card-star:hover { color: var(--fg2); background: var(--surface-04); }
+.board-card-star.on { color: var(--brand-violet-hi); }
+
+.board-card-title {
+  margin: 0 22px 0 22px;
+  font-size: 13px; font-weight: 590; color: var(--fg1);
+  letter-spacing: -0.1px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.board-card-stripe {
+  height: 2px; width: 100%; border-radius: 1px;
+  margin: 1px 0 4px;
+  opacity: 0.85;
+}
+
+.board-card-meta {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; color: var(--fg3);
+}
+.board-card-count { font-family: var(--font-mono); }
+
+.board-card-time {
+  font-size: 11px; color: var(--fg4);
+}
+.board-card-state { align-self: flex-start; }
+
+.board-card-kebab-wrap {
+  position: absolute; top: 6px; right: 6px;
+}
+.board-card-kebab {
+  width: 22px; height: 22px; border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--fg4);
+  opacity: 0;
+  transition: opacity 100ms ease, background 100ms ease, color 100ms ease;
+}
+.board-card:hover .board-card-kebab,
+.board-card-kebab[aria-expanded="true"] { opacity: 1; }
+.board-card-kebab:hover { background: var(--surface-08); color: var(--fg1); }
+
+.board-card-menu {
+  position: absolute; top: 26px; right: 0;
+  min-width: 160px;
+}
+.board-card-menu .menu-item {
+  text-decoration: none;
+}

@@ -1,6 +1,42 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useStore } from "../_data/store";
+import type { Board } from "../_data/retro";
 import { Avatar, Icon } from "./Primitives";
 
+function cardCount(b: Board): number {
+  return b.columns.reduce((n, c) => n + c.cards.length, 0);
+}
+
 export function Sidebar() {
+  const { boards } = useStore();
+  const pathname = usePathname() ?? "/";
+
+  const activeBoards = boards.filter((b) => !b.archivedAt);
+  const retros = activeBoards
+    .filter((b) => b.type === "retro")
+    .slice()
+    .sort((a, b) => {
+      // Spec §7: starred retros first; otherwise stable input order.
+      if (a.starred !== b.starred) return a.starred ? -1 : 1;
+      return 0;
+    });
+
+  // Active-state rule (spec §7):
+  //   "/"               -> Boards
+  //   "/boards/[id]" kanban -> Boards
+  //   "/boards/[id]" retro  -> matching retro row, NOT Boards
+  const boardIdMatch = pathname.match(/^\/boards\/([^/]+)/);
+  const activeBoardId = boardIdMatch?.[1];
+  const activeBoard = activeBoardId
+    ? boards.find((b) => b.id === activeBoardId)
+    : undefined;
+  const isRetroRoute = activeBoard?.type === "retro";
+
+  const boardsItemActive = pathname === "/" || (!!activeBoard && !isRetroRoute);
+
   return (
     <aside className="sidebar">
       <div className="workspace">
@@ -30,9 +66,13 @@ export function Sidebar() {
         <div className="side-item">
           <Icon name="inbox" size={15} /> Inbox <span className="count">3</span>
         </div>
-        <div className="side-item">
-          <Icon name="board" size={15} /> Boards <span className="count">12</span>
-        </div>
+        <Link
+          href="/"
+          className={"side-item" + (boardsItemActive ? " active" : "")}
+        >
+          <Icon name="board" size={15} /> Boards
+          <span className="count">{activeBoards.length}</span>
+        </Link>
         <div className="side-item">
           <Icon name="cycle" size={15} /> Cycles <span className="count">2</span>
         </div>
@@ -40,22 +80,21 @@ export function Sidebar() {
 
       <div className="side-section">
         <div className="side-head">Retros</div>
-        <div className="side-item active">
-          <span className="swatch" style={{ background: "#5e6ad2" }} /> Sprint 24 — checkout v2{" "}
-          <span className="count">12</span>
-        </div>
-        <div className="side-item">
-          <span className="swatch" style={{ background: "#7a7fad" }} /> Sprint 23 — auth migration{" "}
-          <span className="count">·</span>
-        </div>
-        <div className="side-item">
-          <span className="swatch" style={{ background: "#3b9ee0" }} /> Sprint 22 — perf push{" "}
-          <span className="count">·</span>
-        </div>
-        <div className="side-item">
-          <span className="swatch" style={{ background: "#27a644" }} /> Q1 launch retro{" "}
-          <span className="count">·</span>
-        </div>
+        {retros.map((b) => {
+          const isActive = isRetroRoute && b.id === activeBoardId;
+          const count = cardCount(b);
+          return (
+            <Link
+              key={b.id}
+              href={`/boards/${b.id}`}
+              className={"side-item" + (isActive ? " active" : "")}
+            >
+              <span className="swatch" style={{ background: b.color }} />
+              {b.title}
+              <span className="count">{count > 0 ? count : "·"}</span>
+            </Link>
+          );
+        })}
       </div>
 
       <div

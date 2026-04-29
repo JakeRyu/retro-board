@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Board, Card, Column } from "./retro";
-import { SEED_BOARD } from "./retro";
+import { SEED_BOARD, SEED_BOARDS } from "./retro";
 
 // Bump when the persisted shape changes in a way that needs migration.
 export const SCHEMA_VERSION = 1;
@@ -25,7 +25,7 @@ const seedState = (): StoreState => ({
   schemaVersion: SCHEMA_VERSION,
   // Deep clone the seed so mutations never write back into the module-level
   // constant — that would corrupt the seed for any subsequent fresh boot.
-  boards: [structuredClone(SEED_BOARD)],
+  boards: SEED_BOARDS.map((b) => structuredClone(b)),
   activeBoardId: SEED_BOARD.id,
 });
 
@@ -139,10 +139,23 @@ function updateColumns(updater: (cols: Column[]) => Column[]) {
   updateActiveBoard((b) => ({ ...b, columns: updater(b.columns) }));
 }
 
+function updateBoardById(id: string, updater: (b: Board) => Board) {
+  const idx = state.boards.findIndex((b) => b.id === id);
+  if (idx < 0) return;
+  const nextBoard = touch(updater(state.boards[idx]));
+  const nextBoards = state.boards.slice();
+  nextBoards[idx] = nextBoard;
+  commit({ ...state, boards: nextBoards });
+}
+
 export const storeActions = {
   setActiveBoardId(id: string) {
     if (state.activeBoardId === id) return;
     commit({ ...state, activeBoardId: id });
+  },
+
+  toggleStar(boardId: string) {
+    updateBoardById(boardId, (b) => ({ ...b, starred: !b.starred }));
   },
 
   setBoardTitle(title: string) {

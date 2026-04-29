@@ -61,8 +61,23 @@ export type Board = {
   updatedAt: string;
   archivedAt?: string;
   starred: boolean;
+  // Stable seeded color used by sidebar swatch and boards-list theme stripe.
+  // Not user-editable in v1.
+  color: string;
   columns: Column[];
 };
+
+// Fixed palette used to seed Board.color. F-03 will pick from the same set
+// (round-robin or hash-of-id) so the palette is the source of truth.
+export const BOARD_COLORS = [
+  "#5e6ad2", // indigo
+  "#7a7fad", // lavender
+  "#3b9ee0", // blue
+  "#27a644", // green
+  "#e08e3b", // amber
+  "#bb55cc", // magenta
+  "#e05a5a", // red
+] as const;
 
 export const USERS: User[] = [
   { id: "me", name: "You", initials: "YO", color: "#5e6ad2" },
@@ -190,8 +205,89 @@ export const SEED_BOARD: Board = {
   createdAt: SEED_TIMESTAMP,
   updatedAt: SEED_TIMESTAMP,
   starred: false,
+  color: BOARD_COLORS[0],
   columns: SEED_COLUMNS,
 };
+
+// Additional seed boards so the boards list demonstrates grouping
+// (Starred / Open / Closed / Archived). Cards are intentionally sparse.
+function emptyKanbanColumns(): Column[] {
+  return [
+    { id: "todo", title: "To do", desc: "", cards: [] },
+    { id: "doing", title: "In progress", desc: "", cards: [] },
+    { id: "done", title: "Done", desc: "", cards: [] },
+  ];
+}
+
+export const SEED_BOARD_KANBAN: Board = {
+  id: "b-seed-platform-q2",
+  type: "kanban",
+  title: "Platform Q2 roadmap",
+  theme: "",
+  created: "Apr 18",
+  state: "open",
+  createdAt: "2026-04-18T09:00:00.000Z",
+  updatedAt: "2026-04-27T15:30:00.000Z",
+  starred: true,
+  color: BOARD_COLORS[2],
+  columns: [
+    {
+      id: "todo",
+      title: "To do",
+      desc: "",
+      cards: [
+        { id: "pq1", body: "Migrate edge cache to v2 config.", authorId: "u3", voters: [] },
+        { id: "pq2", body: "Spike: per-tenant rate limits.", authorId: "me", voters: [] },
+      ],
+    },
+    {
+      id: "doing",
+      title: "In progress",
+      desc: "",
+      cards: [
+        { id: "pq3", body: "Auth refresh-token rotation.", authorId: "u6", voters: [] },
+      ],
+    },
+    { id: "done", title: "Done", desc: "", cards: [] },
+  ],
+};
+
+export const SEED_BOARD_CLOSED: Board = {
+  id: "b-seed-sprint-23",
+  type: "retro",
+  title: "Sprint 23 — auth migration",
+  theme:
+    "Auth migration shipped after one week of slip. What did we learn?",
+  created: "Apr 10",
+  state: "closed",
+  createdAt: "2026-04-10T09:00:00.000Z",
+  updatedAt: "2026-04-17T17:00:00.000Z",
+  starred: false,
+  color: BOARD_COLORS[1],
+  columns: emptyKanbanColumns(),
+};
+
+export const SEED_BOARD_ARCHIVED: Board = {
+  id: "b-seed-q1-launch",
+  type: "retro",
+  title: "Q1 launch retro",
+  theme: "How did the Q1 launch land?",
+  created: "Mar 30",
+  state: "closed",
+  createdAt: "2026-03-30T09:00:00.000Z",
+  updatedAt: "2026-04-02T11:00:00.000Z",
+  archivedAt: "2026-04-04T11:00:00.000Z",
+  starred: false,
+  color: BOARD_COLORS[3],
+  columns: emptyKanbanColumns(),
+};
+
+export const SEED_BOARDS: Board[] = [
+  SEED_BOARD,
+  SEED_BOARD_KANBAN,
+  SEED_BOARD_CLOSED,
+  SEED_BOARD_ARCHIVED,
+];
 
 // Back-compat re-exports for code paths that still reference the old constants.
 export const BOARD = SEED_BOARD;
