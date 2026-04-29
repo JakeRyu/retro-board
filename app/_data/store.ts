@@ -284,6 +284,24 @@ export const storeActions = {
     );
   },
 
+  // Empty / whitespace-only descriptions are stored as `undefined` so the card
+  // preview indicator (F-08) and any future "has description" filter can
+  // simply check `card.description`.
+  setCardDescription(boardId: string, cardId: string, description: string) {
+    const trimmed = description.trim();
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) =>
+          card.id === cardId
+            ? { ...card, description: trimmed === "" ? undefined : trimmed }
+            : card,
+        ),
+      })),
+    }));
+  },
+
   deleteCard(cardId: string) {
     updateColumns((cols) =>
       cols.map((c) => ({

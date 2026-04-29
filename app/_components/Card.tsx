@@ -133,6 +133,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
   const author = users.find((u) => u.id === card.authorId);
   const isMine = card.authorId === "me" && !readOnly;
   const voted = card.voters.includes("me");
+  const hasDescription = !!card.description && card.description.trim().length > 0;
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(card.body);
@@ -264,6 +265,15 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
           </span>
         ) : null}
         <div className="vote-row">
+          {hasDescription && (
+            <span
+              className="card-desc-indicator"
+              aria-label="Has description"
+              title="This card has a description"
+            >
+              <Icon name="description" size={12} />
+            </span>
+          )}
           <Voters voterIds={card.voters} users={users} anonymous={anonymous} />
           {!readOnly && (
             <VoteButton count={card.voters.length} voted={voted} onClick={() => onVote(card.id)} />

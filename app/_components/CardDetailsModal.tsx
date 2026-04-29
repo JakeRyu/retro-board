@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Avatar, Icon } from "./Primitives";
 import type { Card, User } from "../_data/retro";
+
+const URL_REGEX = /\bhttps?:\/\/\S+/g;
 
 type CardDetailsModalProps = {
   card: Card;
@@ -12,6 +14,7 @@ type CardDetailsModalProps = {
   readOnly: boolean;
   onClose: () => void;
   onSaveTitle: (cardId: string, title: string) => void;
+  onSaveDescription: (cardId: string, description: string) => void;
   onVote: (cardId: string) => void;
 };
 
@@ -26,6 +29,7 @@ export function CardDetailsModal({
   readOnly,
   onClose,
   onSaveTitle,
+  onSaveDescription,
   onVote,
 }: CardDetailsModalProps) {
   const [titleDraft, setTitleDraft] = useState(card.body);
@@ -153,9 +157,12 @@ export function CardDetailsModal({
             {/* F-08 slot — owned by spec design-F-08.md */}
             <section className="cd-description">
               <h3 className="cd-section-label">Description</h3>
-              <p className="cd-placeholder">
-                Description will be added in F-08.
-              </p>
+              <CardDescription
+                cardId={card.id}
+                description={card.description}
+                readOnly={readOnly}
+                onSave={onSaveDescription}
+              />
             </section>
 
             {/* F-09 slot — owned by spec design-F-09.md */}
@@ -245,4 +252,173 @@ function Voters({
       {overflow > 0 && <span className="voters-more">+{overflow}</span>}
     </div>
   );
+}
+
+// --- F-08 Description --------------------------------------------------------
+
+type CardDescriptionProps = {
+  cardId: string;
+  description: string | undefined;
+  readOnly: boolean;
+  onSave: (cardId: string, description: string) => void;
+};
+
+function CardDescription({
+  cardId,
+  description,
+  readOnly,
+  onSave,
+}: CardDescriptionProps) {
+  const saved = description ?? "";
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(saved);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // If the underlying card description changes from elsewhere while we're not
+  // actively editing, mirror it into the local draft so the next edit starts
+  // from the latest value.
+  useEffect(() => {
+    if (!editing) setDraft(saved);
+  }, [saved, editing]);
+
+  // Autosize: grow with content up to ~12 rows, then scroll. Runs while
+  // editing so the textarea fits the draft on every keystroke.
+  useLayoutEffect(() => {
+    if (!editing) return;
+    const el = textareaRef.current;
+    if (!el) return;
+    const computed = window.getComputedStyle(el);
+    const parsedLine = parseFloat(computed.lineHeight);
+    const lineHeight = Number.isFinite(parsedLine) ? parsedLine : 20;
+    const padding =
+      parseFloat(computed.paddingTop) + parseFloat(computed.paddingBottom);
+    const maxHeight = lineHeight * 12 + padding;
+    el.style.height = "auto";
+    const next = Math.min(el.scrollHeight, maxHeight);
+    el.style.height = next + "px";
+    el.style.overflowY = el.scrollHeight > maxHeight ? "auto" : "hidden";
+  }, [draft, editing]);
+
+  const enterEdit = () => {
+    if (readOnly) return;
+    setDraft(saved);
+    setEditing(true);
+    // Defer focus so the textarea is mounted; cursor lands at end.
+    requestAnimationFrame(() => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      const len = el.value.length;
+      el.setSelectionRange(len, len);
+    });
+  };
+
+  const commit = () => {
+    if (draft.trim() !== saved.trim()) {
+      onSave(cardId, draft);
+    }
+    setEditing(false);
+  };
+
+  if (!editing) {
+    const isEmpty = saved.trim().length === 0;
+    if (isEmpty) {
+      return (
+        <div
+          className={
+            "cd-description-render empty" + (readOnly ? " readonly" : "")
+          }
+          role={readOnly ? undefined : "button"}
+          tabIndex={readOnly ? -1 : 0}
+          onClick={readOnly ? undefined : enterEdit}
+          onKeyDown={(e) => {
+            if (readOnly) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              enterEdit();
+            }
+          }}
+        >
+          Add a more detailed description…
+        </div>
+      );
+    }
+    return (
+      <div
+        className={
+          "cd-description-render" + (readOnly ? " readonly" : "")
+        }
+        onClick={(e) => {
+          if (readOnly) return;
+          // Anchor click should follow the link, not enter edit mode.
+          const target = e.target as HTMLElement | null;
+          if (target && target.closest("a")) return;
+          enterEdit();
+        }}
+      >
+        {renderDescription(saved)}
+      </div>
+    );
+  }
+
+  return (
+    <textarea
+      ref={textareaRef}
+      className="cd-description-input"
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          // Revert and exit; consume so the modal-level Esc doesn't close it.
+          e.stopPropagation();
+          e.preventDefault();
+          setDraft(saved);
+          setEditing(false);
+          return;
+        }
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          commit();
+        }
+      }}
+      placeholder="Add a more detailed description…"
+      disabled={readOnly}
+      rows={4}
+    />
+  );
+}
+
+// Render a description body with line breaks preserved (via `white-space:
+// pre-wrap` on the wrapper) and any URLs auto-linked. Backlog says no full
+// markdown — this is the entire transform.
+function renderDescription(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  // `URL_REGEX` is module-level with /g; reset before each pass.
+  URL_REGEX.lastIndex = 0;
+  while ((match = URL_REGEX.exec(text)) !== null) {
+    const start = match.index;
+    const end = start + match[0].length;
+    if (start > lastIndex) {
+      parts.push(<Fragment key={lastIndex}>{text.slice(lastIndex, start)}</Fragment>);
+    }
+    parts.push(
+      <a
+        key={"a-" + start}
+        href={match[0]}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {match[0]}
+      </a>,
+    );
+    lastIndex = end;
+  }
+  if (lastIndex < text.length) {
+    parts.push(<Fragment key={lastIndex}>{text.slice(lastIndex)}</Fragment>);
+  }
+  return parts;
 }

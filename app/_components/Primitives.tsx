@@ -18,7 +18,8 @@ type IconName =
   | "arrowUp"
   | "sparkle"
   | "git"
-  | "arrow";
+  | "arrow"
+  | "description";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   board: (
@@ -80,6 +81,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   arrow: <path d="M5 12h14M13 5l7 7-7 7" />,
+  description: <path d="M4 6h16M4 12h12M4 18h8" />,
 };
 
 type IconProps = {

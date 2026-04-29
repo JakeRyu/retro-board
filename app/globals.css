@@ -558,6 +558,59 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   font-size: 12px; color: var(--fg4); font-style: italic;
 }
 
+/* ---------- card description (F-08) ---------- */
+.cd-description-render {
+  font-size: 13px; line-height: 1.55;
+  color: var(--fg2);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  cursor: text;
+  padding: 6px 8px;
+  border-radius: 6px;
+  min-height: 28px;
+  transition: background 120ms ease;
+}
+.cd-description-render:hover { background: var(--surface-02); }
+.cd-description-render.readonly { cursor: default; }
+.cd-description-render.readonly:hover { background: transparent; }
+.cd-description-render.empty {
+  color: var(--fg4);
+  font-style: italic;
+}
+.cd-description-render a {
+  color: var(--brand-violet-hi);
+  text-decoration: underline;
+}
+.cd-description-render a:hover { color: var(--brand-violet); }
+.cd-description-render:focus-visible {
+  outline: 1px solid var(--brand-indigo);
+  outline-offset: 1px;
+  background: var(--surface-02);
+}
+
+.cd-description-input {
+  width: 100%;
+  background: var(--bg-surface); color: var(--fg1);
+  border: 1px solid var(--brand-indigo); border-radius: 6px;
+  padding: 8px 10px;
+  font: inherit; font-size: 13px; line-height: 1.55;
+  resize: none; min-height: 84px;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(94,106,210,0.15);
+  font-family: inherit;
+}
+.cd-description-input:disabled {
+  border-color: var(--border-1);
+  box-shadow: none;
+  color: var(--fg3);
+}
+
+.card-desc-indicator {
+  display: inline-flex; align-items: center;
+  color: var(--fg4);
+  margin-right: 4px;
+}
+
 @media (max-width: 640px) {
   .cd-grid { grid-template-columns: 1fr; }
 }

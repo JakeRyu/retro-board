@@ -841,6 +841,9 @@ function RetroAppLoaded({ board }: { board: Board }) {
           readOnly={closed}
           onClose={closeCardModal}
           onSaveTitle={(cardId, title) => storeActions.saveCard(cardId, title)}
+          onSaveDescription={(cardId, description) =>
+            storeActions.setCardDescription(board.id, cardId, description)
+          }
           onVote={onVote}
         />
       )}
