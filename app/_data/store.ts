@@ -292,6 +292,27 @@ export const storeActions = {
       })),
     );
   },
+
+  addColumn(boardId: string, title: string = "New column"): string {
+    const id = "col-" + Date.now().toString(36);
+    const column: Column = { id, title, desc: "", cards: [] };
+    updateBoardById(boardId, (b) => ({ ...b, columns: [...b.columns, column] }));
+    return id;
+  },
+
+  renameColumn(boardId: string, columnId: string, title: string) {
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) => (c.id === columnId ? { ...c, title } : c)),
+    }));
+  },
+
+  deleteColumn(boardId: string, columnId: string) {
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.filter((c) => c.id !== columnId),
+    }));
+  },
 };
 
 // --- React hooks ---------------------------------------------------------

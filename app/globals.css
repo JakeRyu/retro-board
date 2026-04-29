@@ -34,6 +34,8 @@
   /* ---- Status ---- */
   --status-green:   #27a644;
   --status-emerald: #10b981;
+  --danger:         #d97777;
+  --danger-hi:      #f0a0a0;
 
   /* ---- Borders (solid) ---- */
   --border-1: #23252a;
@@ -101,8 +103,10 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   display: inline-flex; align-items: center; gap: 5px;
 }
 .btn-toolbar:hover { background: var(--surface-08); color: var(--fg2); }
-.btn-danger-ghost { background: transparent; color: #d97777; border:1px solid var(--border-1); }
-.btn-danger-ghost:hover { background: rgba(217,119,119,0.08); color: #f0a0a0; border-color: rgba(217,119,119,0.3); }
+.btn-danger-ghost { background: transparent; color: var(--danger); border:1px solid var(--border-1); }
+.btn-danger-ghost:hover { background: rgba(217,119,119,0.08); color: var(--danger-hi); border-color: rgba(217,119,119,0.3); }
+.btn-danger { background: var(--danger); color:#fff; border-color: rgba(255,255,255,0.08); }
+.btn-danger:hover { background: var(--danger-hi); }
 
 .kbd { font-family: var(--font-mono); font-size:10px; color: var(--fg4); border:1px solid var(--border-subtle);
   border-radius: 3px; padding: 1px 5px; background: var(--surface-04); }
@@ -259,6 +263,19 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   color: var(--fg4);
 }
 .col-icon-btn:hover { background: var(--surface-05); color: var(--fg2); }
+.col-title-input {
+  flex: 1; min-width: 0;
+  background: var(--bg-surface); color: var(--fg1);
+  border: 1px solid var(--brand-indigo); border-radius: 4px;
+  padding: 1px 5px;
+  font: inherit; font-size: 13px; font-weight: 590; letter-spacing: -0.1px;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(94,106,210,0.15);
+}
+.col-kebab-menu {
+  top: 28px; right: 0;
+  min-width: 140px;
+}
 .col-desc {
   font-size: 11px; color: var(--fg3); line-height: 1.5;
   padding: 0 6px 8px;

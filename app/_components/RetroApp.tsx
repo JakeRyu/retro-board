@@ -8,6 +8,7 @@ import { Avatar, Icon } from "./Primitives";
 import type { Board } from "../_data/retro";
 import { USERS } from "../_data/retro";
 import { storeActions, useBoard } from "../_data/store";
+import { useIsOwner } from "../_hooks/useIsOwner";
 
 export function RetroApp({ boardId }: { boardId: string }) {
   const board = useBoard(boardId);
@@ -55,16 +56,20 @@ function RetroAppLoaded({ board }: { board: Board }) {
   const columns = board.columns;
   const closed = board.state === "closed";
   const crumbPrefix = board.type === "retro" ? "Retros" : "Boards";
+  const isOwner = useIsOwner(board);
 
   const [anonymous, setAnonymous] = useState(false);
   const [themeOpen, setThemeOpen] = useState(true);
   const [discussion, setDiscussion] = useState(false);
   const [focusColId, setFocusColId] = useState<string>(columns[0]?.id ?? "");
   const [confirmClose, setConfirmClose] = useState(false);
+  const [confirmDeleteColId, setConfirmDeleteColId] = useState<string | null>(null);
+  const [autoEditColId, setAutoEditColId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const anonInitialized = useRef(false);
+  const boardAreaRef = useRef<HTMLDivElement | null>(null);
 
   // Keep the discussion focus pointer valid if hydration / external mutation
   // changes the column set under us.
@@ -107,6 +112,47 @@ function RetroAppLoaded({ board }: { board: Board }) {
     storeActions.deleteCard(cardId);
     fireToast("Card deleted.");
   };
+
+  const onAddColumn = () => {
+    const id = storeActions.addColumn(board.id);
+    setAutoEditColId(id);
+    // Scroll the new (last) column into view once it has rendered.
+    setTimeout(() => {
+      const area = boardAreaRef.current;
+      if (!area) return;
+      area.scrollTo({ left: area.scrollWidth, behavior: "smooth" });
+    }, 0);
+  };
+
+  const onRenameColumn = (colId: string, title: string) => {
+    storeActions.renameColumn(board.id, colId, title);
+  };
+
+  const onRequestDeleteColumn = (colId: string) => {
+    const target = columns.find((c) => c.id === colId);
+    if (!target) return;
+    if (target.cards.length === 0) {
+      performDeleteColumn(colId);
+      return;
+    }
+    setConfirmDeleteColId(colId);
+  };
+
+  const performDeleteColumn = (colId: string) => {
+    // If the focus pointer is on the deleted column, repoint it. Compute the
+    // replacement before mutating so we don't race the store update.
+    if (focusColId === colId) {
+      const idx = columns.findIndex((c) => c.id === colId);
+      const next = columns[idx + 1] ?? columns[idx - 1];
+      setFocusColId(next?.id ?? "");
+    }
+    storeActions.deleteColumn(board.id, colId);
+    setConfirmDeleteColId(null);
+  };
+
+  const confirmDeleteTarget = confirmDeleteColId
+    ? columns.find((c) => c.id === confirmDeleteColId) ?? null
+    : null;
 
   const colIdx = columns.findIndex((c) => c.id === focusColId);
   const focusedCol = columns[colIdx];
@@ -300,7 +346,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
         )}
 
         {/* ---- board area ---- */}
-        <div className="board-area">
+        <div className="board-area" ref={boardAreaRef}>
           {columns.map((col) => (
             <Column
               key={col.id}
@@ -310,15 +356,21 @@ function RetroAppLoaded({ board }: { board: Board }) {
               focused={discussion && col.id === focusColId}
               sortByVotes={discussion && col.id === focusColId}
               readOnly={closed}
+              discussion={discussion}
+              canEdit={isOwner}
+              autoEditTitle={autoEditColId === col.id}
               newIds={newIds}
               onVote={onVote}
               onAdd={onAdd}
               onSaveCard={onSaveCard}
               onDeleteCard={onDeleteCard}
+              onRenameColumn={onRenameColumn}
+              onRequestDeleteColumn={onRequestDeleteColumn}
+              onAutoEditConsumed={() => setAutoEditColId(null)}
             />
           ))}
-          {!closed && !discussion && (
-            <button className="add-col">
+          {!closed && !discussion && isOwner && (
+            <button className="add-col" onClick={onAddColumn}>
               <Icon name="plus" size={12} /> Add column
             </button>
           )}
@@ -340,8 +392,36 @@ function RetroAppLoaded({ board }: { board: Board }) {
             <button className="btn btn-ghost" onClick={() => setConfirmClose(false)}>
               Cancel
             </button>
-            <button className="btn btn-primary" onClick={closeBoard}>
+            <button className="btn btn-danger" onClick={closeBoard}>
               Close board
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* delete-column confirm (non-empty only) */}
+      <div
+        className={"modal-overlay" + (confirmDeleteTarget ? " open" : "")}
+        onClick={() => setConfirmDeleteColId(null)}
+      >
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <h2>Delete this column?</h2>
+          <p>
+            {confirmDeleteTarget
+              ? `This column has ${confirmDeleteTarget.cards.length} ${
+                  confirmDeleteTarget.cards.length === 1 ? "card" : "cards"
+                }. Delete the column and all its cards?`
+              : ""}
+          </p>
+          <div className="modal-actions">
+            <button className="btn btn-ghost" onClick={() => setConfirmDeleteColId(null)}>
+              Cancel
+            </button>
+            <button
+              className="btn btn-danger"
+              onClick={() => confirmDeleteTarget && performDeleteColumn(confirmDeleteTarget.id)}
+            >
+              Delete
             </button>
           </div>
         </div>
