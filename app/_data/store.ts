@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import type { Board, Card, Column } from "./retro";
-import { SEED_BOARD, SEED_BOARDS } from "./retro";
+import type { Board, BoardType, Card, Column } from "./retro";
+import { BOARD_COLORS, SEED_BOARD, SEED_BOARDS } from "./retro";
 
 // Bump when the persisted shape changes in a way that needs migration.
 export const SCHEMA_VERSION = 1;
@@ -72,15 +72,22 @@ function flush() {
   if (typeof window === "undefined") return;
   writeTimer = null;
   try {
-    const payload: PersistShape = {
-      schemaVersion: state.schemaVersion,
-      boards: state.boards,
-      activeBoardId: state.activeBoardId,
-    };
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    writeNow();
   } catch {
     // Quota or privacy-mode failure: drop silently. Memory state still works.
   }
+}
+
+// Synchronous write that surfaces failures. Used by mutations whose UI must
+// know about a storage-full error (e.g. create-board dialog).
+function writeNow() {
+  if (typeof window === "undefined") return;
+  const payload: PersistShape = {
+    schemaVersion: state.schemaVersion,
+    boards: state.boards,
+    activeBoardId: state.activeBoardId,
+  };
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
 
 function hydrateFromStorage() {
@@ -148,10 +155,77 @@ function updateBoardById(id: string, updater: (b: Board) => Board) {
   commit({ ...state, boards: nextBoards });
 }
 
+function defaultColumnsFor(type: BoardType): Column[] {
+  if (type === "retro") {
+    return [
+      { id: "c-went-well", title: "What went well", desc: "", cards: [] },
+      { id: "c-didnt", title: "What didn't", desc: "", cards: [] },
+      { id: "c-try", title: "Try next time", desc: "", cards: [] },
+      { id: "c-shout", title: "Shout-outs", desc: "", cards: [] },
+    ];
+  }
+  return [
+    { id: "c-todo", title: "To do", desc: "", cards: [] },
+    { id: "c-doing", title: "In progress", desc: "", cards: [] },
+    { id: "c-done", title: "Done", desc: "", cards: [] },
+  ];
+}
+
+export type CreateBoardInput = {
+  title: string;
+  type: BoardType;
+  color: string;
+  theme?: string;
+};
+
 export const storeActions = {
   setActiveBoardId(id: string) {
     if (state.activeBoardId === id) return;
     commit({ ...state, activeBoardId: id });
+  },
+
+  // Persists synchronously and rethrows on storage failure so the caller
+  // (the create-board dialog) can show an inline error.
+  createBoard(input: CreateBoardInput): string {
+    const now = new Date().toISOString();
+    const id = "b-" + Date.now().toString(36);
+    const color = BOARD_COLORS.includes(input.color as (typeof BOARD_COLORS)[number])
+      ? input.color
+      : BOARD_COLORS[0];
+    const board: Board = {
+      id,
+      type: input.type,
+      title: input.title,
+      theme: input.theme ?? "",
+      created: now.slice(0, 10),
+      state: "open",
+      createdAt: now,
+      updatedAt: now,
+      starred: false,
+      color,
+      columns: defaultColumnsFor(input.type),
+    };
+    const prevState = state;
+    state = {
+      ...state,
+      boards: [...state.boards, board],
+      activeBoardId: id,
+    };
+    emit();
+    // Force a synchronous write so storage-full surfaces before navigation.
+    if (writeTimer) {
+      clearTimeout(writeTimer);
+      writeTimer = null;
+    }
+    try {
+      writeNow();
+    } catch (err) {
+      // Roll back so the failed write doesn't leave a phantom board in memory.
+      state = prevState;
+      emit();
+      throw err;
+    }
+    return id;
   },
 
   toggleStar(boardId: string) {

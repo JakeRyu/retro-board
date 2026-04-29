@@ -5,6 +5,11 @@ import { usePathname } from "next/navigation";
 import { useStore } from "../_data/store";
 import type { Board } from "../_data/retro";
 import { Avatar, Icon } from "./Primitives";
+import { CreateBoardDialog } from "./CreateBoardDialog";
+import {
+  openCreateBoardDialog,
+  useCreateBoardDialogHost,
+} from "../_hooks/useCreateBoardDialog";
 
 function cardCount(b: Board): number {
   return b.columns.reduce((n, c) => n + c.cards.length, 0);
@@ -13,6 +18,7 @@ function cardCount(b: Board): number {
 export function Sidebar() {
   const { boards } = useStore();
   const pathname = usePathname() ?? "/";
+  const dialog = useCreateBoardDialogHost();
 
   const activeBoards = boards.filter((b) => !b.archivedAt);
   const retros = activeBoards
@@ -80,6 +86,16 @@ export function Sidebar() {
 
       <div className="side-section">
         <div className="side-head">Retros</div>
+        <button
+          type="button"
+          className="side-item side-item-create"
+          onClick={(e) => openCreateBoardDialog(e.currentTarget)}
+        >
+          <span className="side-create-glyph" aria-hidden>
+            +
+          </span>
+          Create board
+        </button>
         {retros.map((b) => {
           const isActive = isRetroRoute && b.id === activeBoardId;
           const count = cardCount(b);
@@ -114,6 +130,7 @@ export function Sidebar() {
           />
         </div>
       </div>
+      <CreateBoardDialog open={dialog.open} onClose={dialog.close} />
     </aside>
   );
 }

@@ -3,6 +3,7 @@
 import type { Board } from "../_data/retro";
 import { useStore } from "../_data/store";
 import { useSectionCollapsed } from "../_hooks/useSectionCollapsed";
+import { openCreateBoardDialog } from "../_hooks/useCreateBoardDialog";
 import { BoardCard } from "./BoardCard";
 import { Sidebar } from "./Sidebar";
 import { Icon } from "./Primitives";
@@ -43,11 +44,8 @@ function partition(boards: Board[]): Record<SectionKey, Board[]> {
 export function BoardsPage() {
   const { boards } = useStore();
 
-  // Create-board CTA: F-03 wires the dialog. For now, a placeholder hook so
-  // the F-03 dev has a clear hookup point.
-  const onCreateBoard = () => {
-    // TODO(F-03): open create-board dialog.
-    console.log("[F-02] Create board CTA — F-03 will wire the dialog.");
+  const onCreateBoard = (e: React.MouseEvent<HTMLButtonElement>) => {
+    openCreateBoardDialog(e.currentTarget);
   };
 
   const groups = partition(boards);

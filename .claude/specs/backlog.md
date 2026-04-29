@@ -75,12 +75,13 @@ The current product is a **single hi-fi retro board** that lives at the app root
 - **Priority:** P0
 - **Dependencies:** F-01, F-02
 - **Acceptance criteria:**
-  - "Create board" CTA on boards list and in sidebar opens a modal dialog.
-  - Fields: title (required), type (Kanban / Retro, segmented control, default Kanban), retro-only theme prompt (visible only when Retro chosen).
+  - "Create board" CTA on boards list and a `+ Create board` row at the top of the sidebar `Boards` section both open the same modal dialog.
+  - Fields: title (required), type (Kanban / Retro, segmented control, default Kanban), retro-only theme prompt (visible only when Retro chosen), color (one of the 7 `BOARD_COLORS` swatches, default randomized at dialog-open).
   - On submit: new board is created with default columns. Kanban default = `To do / In progress / Done`. Retro default = `What went well / What didn't / Try next time / Shout-outs`.
   - Submit navigates to the new board's detail page.
-  - Esc / overlay click cancels; Enter on the title input submits.
+  - Esc / overlay click cancels and returns focus to the trigger that opened the dialog.
   - Validation: title ≥ 1 char, ≤ 80 chars, trimmed.
+  - Storage-full write failure shows an inline error in the dialog and leaves the dialog open (no recovery link in v1).
 - **Out of scope for v1:** templates beyond the two defaults, importing from Trello, copying an existing board.
 
 ---
