@@ -263,20 +263,24 @@ export function Column({
         ))}
 
       <div className="col-cards">
-        {cards.map((c) => (
-          <Card
-            key={c.id}
-            card={c}
-            users={users}
-            anonymous={anonymous}
-            isTopVoted={focused && sortByVotes && c.id === topId}
-            isNew={newIds.has(c.id)}
-            readOnly={readOnly}
-            onVote={onVote}
-            onSave={onSaveCard}
-            onDelete={onDeleteCard}
-          />
-        ))}
+        {cards.length === 0 ? (
+          <div className="empty-column-hint">Nothing here yet.</div>
+        ) : (
+          cards.map((c) => (
+            <Card
+              key={c.id}
+              card={c}
+              users={users}
+              anonymous={anonymous}
+              isTopVoted={focused && sortByVotes && c.id === topId}
+              isNew={newIds.has(c.id)}
+              readOnly={readOnly}
+              onVote={onVote}
+              onSave={onSaveCard}
+              onDelete={onDeleteCard}
+            />
+          ))
+        )}
       </div>
     </div>
   );

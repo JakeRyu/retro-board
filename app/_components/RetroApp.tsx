@@ -345,36 +345,59 @@ function RetroAppLoaded({ board }: { board: Board }) {
           </div>
         )}
 
-        {/* ---- board area ---- */}
-        <div className="board-area" ref={boardAreaRef}>
-          {columns.map((col) => (
-            <Column
-              key={col.id}
-              col={col}
-              users={USERS}
-              anonymous={anonymous}
-              focused={discussion && col.id === focusColId}
-              sortByVotes={discussion && col.id === focusColId}
-              readOnly={closed}
-              discussion={discussion}
-              canEdit={isOwner}
-              autoEditTitle={autoEditColId === col.id}
-              newIds={newIds}
-              onVote={onVote}
-              onAdd={onAdd}
-              onSaveCard={onSaveCard}
-              onDeleteCard={onDeleteCard}
-              onRenameColumn={onRenameColumn}
-              onRequestDeleteColumn={onRequestDeleteColumn}
-              onAutoEditConsumed={() => setAutoEditColId(null)}
-            />
-          ))}
-          {!closed && !discussion && isOwner && (
-            <button className="add-col" onClick={onAddColumn}>
-              <Icon name="plus" size={12} /> Add column
-            </button>
+        {/* ---- empty-board hint (≥1 col, all cols empty) ---- */}
+        {columns.length > 0 &&
+          columns.every((c) => c.cards.length === 0) &&
+          !discussion && (
+            <div className="empty-board-hint">
+              No cards yet. Be the first — what&apos;s on your mind?
+            </div>
           )}
-        </div>
+
+        {/* TODO(F-15): wire empty filter state — render `.empty-filter` here when a
+            filter is active and yields zero matches. */}
+
+        {/* ---- board area ---- */}
+        {columns.length === 0 ? (
+          <div className="empty-zero-cols">
+            <p>This board has no columns yet. Add one to get started.</p>
+            {!closed && !discussion && isOwner && (
+              <button className="btn btn-primary" onClick={onAddColumn}>
+                <Icon name="plus" size={12} /> Add column
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="board-area" ref={boardAreaRef}>
+            {columns.map((col) => (
+              <Column
+                key={col.id}
+                col={col}
+                users={USERS}
+                anonymous={anonymous}
+                focused={discussion && col.id === focusColId}
+                sortByVotes={discussion && col.id === focusColId}
+                readOnly={closed}
+                discussion={discussion}
+                canEdit={isOwner}
+                autoEditTitle={autoEditColId === col.id}
+                newIds={newIds}
+                onVote={onVote}
+                onAdd={onAdd}
+                onSaveCard={onSaveCard}
+                onDeleteCard={onDeleteCard}
+                onRenameColumn={onRenameColumn}
+                onRequestDeleteColumn={onRequestDeleteColumn}
+                onAutoEditConsumed={() => setAutoEditColId(null)}
+              />
+            ))}
+            {!closed && !discussion && isOwner && (
+              <button className="add-col" onClick={onAddColumn}>
+                <Icon name="plus" size={12} /> Add column
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* close-board confirm */}
