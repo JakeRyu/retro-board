@@ -128,7 +128,7 @@ The current product is a **single hi-fi retro board** that lives at the app root
   - A card can be dragged into another column; it lands at the drop position, not always at the end.
   - During drag: source card shows a ghost/placeholder, drop targets highlight, autoscroll near board edges.
   - A column can be dragged horizontally to reorder among other columns (drag handle is the column header).
-  - Keyboard accessibility: a focused card can be moved with `Ctrl/Cmd+Arrow` keys (up/down within column, left/right between columns).
+  - Keyboard accessibility: a focused card can be moved with `Ctrl/Cmd+Arrow` keys (up/down within column, left/right between columns); a focused column header can be moved with `Ctrl/Cmd+Shift+Arrow` left/right to reorder columns.
   - Read-only state (closed board) disables DnD.
   - In retro discussion mode, DnD is disabled (sort-by-votes wins) — facilitator reorder is deferred per HANDOVER §4.3.
 - **Out of scope for v1:** cross-board card move, multi-card drag, DnD on touch devices (mouse + keyboard only — touch deferred).

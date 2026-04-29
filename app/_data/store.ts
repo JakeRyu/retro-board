@@ -313,6 +313,71 @@ export const storeActions = {
       columns: b.columns.filter((c) => c.id !== columnId),
     }));
   },
+
+  // Move a card across (or within) columns to an explicit index in the target.
+  // No-op when source and destination resolve to the same slot.
+  moveCard(
+    boardId: string,
+    cardId: string,
+    fromColumnId: string,
+    toColumnId: string,
+    toIndex: number,
+  ) {
+    updateBoardById(boardId, (b) => {
+      const fromCol = b.columns.find((c) => c.id === fromColumnId);
+      if (!fromCol) return b;
+      const card = fromCol.cards.find((c) => c.id === cardId);
+      if (!card) return b;
+
+      // Same-column reorder: splice out, then insert at the (possibly shifted)
+      // target index so callers can pass either pre- or post-removal indexes
+      // and get the expected visual result.
+      if (fromColumnId === toColumnId) {
+        const fromIdx = fromCol.cards.findIndex((c) => c.id === cardId);
+        if (fromIdx < 0) return b;
+        const without = fromCol.cards.slice();
+        without.splice(fromIdx, 1);
+        const target = Math.max(0, Math.min(toIndex, without.length));
+        if (target === fromIdx) return b;
+        without.splice(target, 0, card);
+        return {
+          ...b,
+          columns: b.columns.map((c) =>
+            c.id === fromColumnId ? { ...c, cards: without } : c,
+          ),
+        };
+      }
+
+      return {
+        ...b,
+        columns: b.columns.map((c) => {
+          if (c.id === fromColumnId) {
+            return { ...c, cards: c.cards.filter((x) => x.id !== cardId) };
+          }
+          if (c.id === toColumnId) {
+            const next = c.cards.slice();
+            const target = Math.max(0, Math.min(toIndex, next.length));
+            next.splice(target, 0, card);
+            return { ...c, cards: next };
+          }
+          return c;
+        }),
+      };
+    });
+  },
+
+  reorderColumn(boardId: string, columnId: string, toIndex: number) {
+    updateBoardById(boardId, (b) => {
+      const fromIdx = b.columns.findIndex((c) => c.id === columnId);
+      if (fromIdx < 0) return b;
+      const without = b.columns.slice();
+      const [col] = without.splice(fromIdx, 1);
+      const target = Math.max(0, Math.min(toIndex, without.length));
+      if (target === fromIdx) return b;
+      without.splice(target, 0, col);
+      return { ...b, columns: without };
+    });
+  },
 };
 
 // --- React hooks ---------------------------------------------------------

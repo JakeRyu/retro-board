@@ -684,6 +684,79 @@ textarea.field-input {
   flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08);
 }
 
+/* ---------- drag and drop (F-06) ---------- */
+.drag-ghost {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.drag-follower {
+  transform: rotate(2deg);
+  opacity: 0.95;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+  cursor: grabbing;
+  pointer-events: none;
+}
+.drag-follower.col {
+  max-height: 80vh;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.drop-indicator {
+  height: 2px;
+  background: var(--brand-indigo);
+  border-radius: 1px;
+  margin: 0;
+  pointer-events: none;
+  list-style: none;
+}
+
+.drop-indicator-col {
+  width: 4px;
+  align-self: stretch;
+  background: var(--brand-indigo);
+  border-radius: 2px;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.card { cursor: grab; }
+.card:active,
+.card.dragging { cursor: grabbing; }
+.col-head { cursor: grab; }
+.col-head:active,
+.col-head.dragging { cursor: grabbing; }
+
+.app[data-readonly="true"] .card,
+.app[data-readonly="true"] .col-head,
+.app[data-discussion="true"] .card,
+.app[data-discussion="true"] .col-head,
+.card:has(.card-edit-input),
+.col-head:has(.col-title-input) {
+  cursor: default;
+}
+
+.card:focus-visible {
+  outline: 1px solid var(--brand-indigo);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(94, 106, 210, 0.15);
+}
+
+.dnd-live {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap; border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drag-follower { transform: none; }
+}
+
 /* ---------- entrance animation for new cards ---------- */
 @keyframes card-in {
   0% { opacity: 0; transform: translateY(-4px); border-color: var(--brand-violet); }

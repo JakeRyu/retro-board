@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Avatar, Icon } from "./Primitives";
 import type { RetroCard, User } from "../_data/retro";
 
@@ -49,6 +51,7 @@ function VoteButton({ count, voted, onClick }: VoteButtonProps) {
       className="vote-btn"
       data-voted={voted}
       onClick={onClick}
+      onPointerDown={(e) => e.stopPropagation()}
       title={voted ? "Click to remove your vote." : "Vote on this card"}
     >
       <span className="arr">▲</span>
@@ -64,35 +67,86 @@ export type CardProps = {
   isTopVoted: boolean;
   isNew: boolean;
   readOnly: boolean;
+  /** Whether DnD is active for this card. */
+  dndEnabled: boolean;
   onVote: (cardId: string) => void;
   onSave: (cardId: string, body: string) => void;
   onDelete: (cardId: string) => void;
+  /** Card-level keyboard reorder handlers (Ctrl/Cmd + Arrow). */
+  onKeyboardMove?: (
+    cardId: string,
+    dir: "up" | "down" | "left" | "right",
+  ) => void;
 };
 
-export function Card({
-  card,
-  users,
-  anonymous,
-  isTopVoted,
-  isNew,
-  readOnly,
-  onVote,
-  onSave,
-  onDelete,
-}: CardProps) {
+// Visual-only card body — used both inline (via Sortable) and by the DragOverlay
+// follower clone. Keep wrapper-free so callers control positioning.
+type CardViewProps = {
+  card: RetroCard;
+  users: User[];
+  anonymous: boolean;
+  isTopVoted: boolean;
+  isNew: boolean;
+  readOnly: boolean;
+  isDragging?: boolean;
+  isFollower?: boolean;
+  dndEnabled: boolean;
+  onVote: (cardId: string) => void;
+  onSave: (cardId: string, body: string) => void;
+  onDelete: (cardId: string) => void;
+  onKeyboardMove?: (
+    cardId: string,
+    dir: "up" | "down" | "left" | "right",
+  ) => void;
+  // dnd-kit attributes/listeners are spread by the wrapper, not here.
+  attributes?: Record<string, unknown>;
+  listeners?: Record<string, unknown>;
+  style?: React.CSSProperties;
+};
+
+export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardView(
+  {
+    card,
+    users,
+    anonymous,
+    isTopVoted,
+    isNew,
+    readOnly,
+    isDragging,
+    isFollower,
+    dndEnabled,
+    onVote,
+    onSave,
+    onDelete,
+    onKeyboardMove,
+    attributes,
+    listeners,
+    style,
+  },
+  ref,
+) {
   const author = users.find((u) => u.id === card.authorId);
   const isMine = card.authorId === "me" && !readOnly;
   const voted = card.voters.includes("me");
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(card.body);
-  const ref = useRef<HTMLDivElement | null>(null);
+  const localRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Hand the merged ref out to dnd-kit while keeping a local ref for menu logic.
+  const setRef = (node: HTMLDivElement | null) => {
+    localRef.current = node;
+    if (typeof ref === "function") ref(node);
+    else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+  };
 
   useEffect(() => {
     if (!menuOpen) return;
     const close = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setMenuOpen(false);
+      if (localRef.current && !localRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
     };
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
@@ -111,15 +165,39 @@ export function Card({
     setEditing(false);
   };
 
+  const onCardKeyDown = (e: React.KeyboardEvent) => {
+    if (editing) return;
+    if (!onKeyboardMove) return;
+    if (!(e.ctrlKey || e.metaKey)) return;
+    // Shift+Ctrl/Cmd+Arrow is reserved for column reorder; let it bubble.
+    if (e.shiftKey) return;
+    let dir: "up" | "down" | "left" | "right" | null = null;
+    if (e.key === "ArrowUp") dir = "up";
+    else if (e.key === "ArrowDown") dir = "down";
+    else if (e.key === "ArrowLeft") dir = "left";
+    else if (e.key === "ArrowRight") dir = "right";
+    if (!dir) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onKeyboardMove(card.id, dir);
+  };
+
   return (
     <div
-      ref={ref}
+      ref={setRef}
+      tabIndex={dndEnabled && !editing ? 0 : -1}
+      onKeyDown={onCardKeyDown}
+      style={style}
       className={
         "card" +
         (isMine ? " mine" : "") +
         (isTopVoted ? " top-voted" : "") +
-        (isNew ? " new" : "")
+        (isNew ? " new" : "") +
+        (isDragging ? " drag-ghost" : "") +
+        (isFollower ? " drag-follower" : "")
       }
+      {...(attributes ?? {})}
+      {...(listeners ?? {})}
     >
       {isTopVoted && <div className="top-voted-flag">★ top voted</div>}
 
@@ -129,6 +207,7 @@ export function Card({
           className="card-edit-input"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          onPointerDown={(e) => e.stopPropagation()}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -178,6 +257,7 @@ export function Card({
           <button
             className="kebab-trigger"
             onClick={() => setMenuOpen((o) => !o)}
+            onPointerDown={(e) => e.stopPropagation()}
             title="More"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -187,7 +267,7 @@ export function Card({
             </svg>
           </button>
           {menuOpen && (
-            <div className="kebab-menu">
+            <div className="kebab-menu" onPointerDown={(e) => e.stopPropagation()}>
               <button
                 className="menu-item"
                 onClick={() => {
@@ -211,5 +291,51 @@ export function Card({
         </>
       )}
     </div>
+  );
+});
+
+export function Card({
+  card,
+  users,
+  anonymous,
+  isTopVoted,
+  isNew,
+  readOnly,
+  dndEnabled,
+  onVote,
+  onSave,
+  onDelete,
+  onKeyboardMove,
+}: CardProps) {
+  const sortable = useSortable({
+    id: card.id,
+    data: { type: "card", cardId: card.id },
+    disabled: !dndEnabled,
+  });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <CardView
+      ref={setNodeRef}
+      card={card}
+      users={users}
+      anonymous={anonymous}
+      isTopVoted={isTopVoted}
+      isNew={isNew}
+      readOnly={readOnly}
+      dndEnabled={dndEnabled}
+      isDragging={isDragging}
+      onVote={onVote}
+      onSave={onSave}
+      onDelete={onDelete}
+      onKeyboardMove={onKeyboardMove}
+      attributes={attributes as unknown as Record<string, unknown>}
+      listeners={listeners as unknown as Record<string, unknown>}
+      style={style}
+    />
   );
 }
