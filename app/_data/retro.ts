@@ -5,25 +5,63 @@ export type User = {
   color: string;
 };
 
-export type RetroCard = {
+export type BoardType = "kanban" | "retro";
+
+export type ChecklistItem = {
+  id: string;
+  text: string;
+  done: boolean;
+};
+
+export type Comment = {
+  id: string;
+  authorId: string;
+  body: string;
+  createdAt: string;
+};
+
+export type Label = {
+  id: string;
+  name: string;
+  color: string;
+};
+
+export type Card = {
   id: string;
   body: string;
   authorId: string;
   voters: string[];
+  description?: string;
+  comments?: Comment[];
+  checklist?: ChecklistItem[];
+  dueDate?: string;
+  labels?: string[];
+  assigneeIds?: string[];
+  archivedAt?: string;
 };
+
+// Back-compat alias — older code paths still import RetroCard.
+export type RetroCard = Card;
 
 export type Column = {
   id: string;
   title: string;
   desc: string;
-  cards: RetroCard[];
+  cards: Card[];
 };
 
 export type Board = {
+  id: string;
+  type: BoardType;
   title: string;
   theme: string;
   created: string;
   state: "open" | "closed";
+  createdAt: string;
+  updatedAt: string;
+  archivedAt?: string;
+  starred: boolean;
+  columns: Column[];
 };
 
 export const USERS: User[] = [
@@ -36,15 +74,9 @@ export const USERS: User[] = [
   { id: "u7", name: "Theo", initials: "TH", color: "#7a7fad" },
 ];
 
-export const BOARD: Board = {
-  title: "Sprint 24 — checkout v2",
-  theme:
-    "We shipped checkout v2 last Tuesday. What worked, what didn't, and what should we try next sprint? Stay specific — talk about behaviors, not people.",
-  created: "Apr 24",
-  state: "open",
-};
+const SEED_TIMESTAMP = "2026-04-24T09:00:00.000Z";
 
-export const COLUMNS: Column[] = [
+export const SEED_COLUMNS: Column[] = [
   {
     id: "c1",
     title: "What went well",
@@ -146,3 +178,21 @@ export const COLUMNS: Column[] = [
     ],
   },
 ];
+
+export const SEED_BOARD: Board = {
+  id: "b-seed-sprint-24",
+  type: "retro",
+  title: "Sprint 24 — checkout v2",
+  theme:
+    "We shipped checkout v2 last Tuesday. What worked, what didn't, and what should we try next sprint? Stay specific — talk about behaviors, not people.",
+  created: "Apr 24",
+  state: "open",
+  createdAt: SEED_TIMESTAMP,
+  updatedAt: SEED_TIMESTAMP,
+  starred: false,
+  columns: SEED_COLUMNS,
+};
+
+// Back-compat re-exports for code paths that still reference the old constants.
+export const BOARD = SEED_BOARD;
+export const COLUMNS = SEED_COLUMNS;

@@ -4,26 +4,32 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Column } from "./Column";
 import { Sidebar } from "./Sidebar";
 import { Avatar, Icon } from "./Primitives";
-import {
-  BOARD,
-  COLUMNS,
-  USERS,
-  type Column as ColumnType,
-} from "../_data/retro";
+import { USERS } from "../_data/retro";
+import { storeActions, useActiveBoard } from "../_data/store";
 
 export function RetroApp() {
-  const [columns, setColumns] = useState<ColumnType[]>(COLUMNS);
+  const board = useActiveBoard();
+  const columns = board.columns;
+  const closed = board.state === "closed";
+
   const [anonymous, setAnonymous] = useState(false);
   const [themeOpen, setThemeOpen] = useState(true);
   const [discussion, setDiscussion] = useState(false);
-  const [focusColId, setFocusColId] = useState<string>("c1");
-  const [closed, setClosed] = useState(false);
+  const [focusColId, setFocusColId] = useState<string>(columns[0]?.id ?? "");
   const [confirmClose, setConfirmClose] = useState(false);
-  const [boardTitle, setBoardTitle] = useState(BOARD.title);
   const [toast, setToast] = useState<string | null>(null);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const anonInitialized = useRef(false);
+
+  // Keep the discussion focus pointer valid if hydration / external mutation
+  // changes the column set under us.
+  useEffect(() => {
+    if (!columns.length) return;
+    if (!columns.some((c) => c.id === focusColId)) {
+      setFocusColId(columns[0].id);
+    }
+  }, [columns, focusColId]);
 
   const fireToast = useCallback((msg: string) => {
     setToast(msg);
@@ -32,30 +38,11 @@ export function RetroApp() {
   }, []);
 
   const onVote = (cardId: string) => {
-    setColumns((cols) =>
-      cols.map((c) => ({
-        ...c,
-        cards: c.cards.map((card) => {
-          if (card.id !== cardId) return card;
-          const has = card.voters.includes("me");
-          return {
-            ...card,
-            voters: has ? card.voters.filter((v) => v !== "me") : [...card.voters, "me"],
-          };
-        }),
-      }))
-    );
+    storeActions.toggleVote(cardId);
   };
 
   const onAdd = (colId: string, body: string) => {
-    const id = "n" + Date.now();
-    setColumns((cols) =>
-      cols.map((c) =>
-        c.id === colId
-          ? { ...c, cards: [{ id, body, authorId: "me", voters: [] }, ...c.cards] }
-          : c
-      )
-    );
+    const id = storeActions.addCard(colId, body);
     setNewIds((s) => new Set([...s, id]));
     setTimeout(() => {
       setNewIds((s) => {
@@ -67,20 +54,13 @@ export function RetroApp() {
   };
 
   const onSaveCard = (cardId: string, body: string) => {
-    setColumns((cols) =>
-      cols.map((c) => ({
-        ...c,
-        cards: c.cards.map((card) => (card.id === cardId ? { ...card, body } : card)),
-      }))
-    );
+    storeActions.saveCard(cardId, body);
     fireToast("Card updated.");
   };
 
   const onDeleteCard = (cardId: string) => {
     if (!confirm("Delete this card? Everyone in the room will see it disappear.")) return;
-    setColumns((cols) =>
-      cols.map((c) => ({ ...c, cards: c.cards.filter((card) => card.id !== cardId) }))
-    );
+    storeActions.deleteCard(cardId);
     fireToast("Card deleted.");
   };
 
@@ -91,7 +71,7 @@ export function RetroApp() {
 
   const enterDiscussion = () => {
     setDiscussion(true);
-    setFocusColId(columns[0].id);
+    if (columns[0]) setFocusColId(columns[0].id);
     setThemeOpen(false);
   };
   const exitDiscussion = useCallback(() => setDiscussion(false), []);
@@ -103,7 +83,7 @@ export function RetroApp() {
   }, [isFirst, columns, colIdx]);
 
   const closeBoard = () => {
-    setClosed(true);
+    storeActions.setBoardState("closed");
     setConfirmClose(false);
     setDiscussion(false);
     fireToast("Board closed. Cards stay readable.");
@@ -146,8 +126,8 @@ export function RetroApp() {
             <span className="crumb-sep">/</span>
             <input
               className="board-title-input"
-              value={boardTitle}
-              onChange={(e) => setBoardTitle(e.target.value)}
+              value={board.title}
+              onChange={(e) => storeActions.setBoardTitle(e.target.value)}
               disabled={closed}
             />
             <span className={"state-pill " + (closed ? "closed" : "open")}>
@@ -268,7 +248,7 @@ export function RetroApp() {
         {!discussion && (
           <div className={"theme-bar" + (themeOpen ? "" : " collapsed")}>
             <span className="label">Theme</span>
-            <div className="body">{BOARD.theme}</div>
+            <div className="body">{board.theme}</div>
             <button className="collapse" onClick={() => setThemeOpen((o) => !o)}>
               {themeOpen ? "collapse" : "expand"}
             </button>
