@@ -4,7 +4,8 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Avatar, Icon } from "./Primitives";
-import type { RetroCard, User } from "../_data/retro";
+import { LabelStripes } from "./Labels";
+import type { Label, RetroCard, User } from "../_data/retro";
 
 type VotersProps = {
   voterIds: string[];
@@ -63,6 +64,8 @@ function VoteButton({ count, voted, onClick }: VoteButtonProps) {
 export type CardProps = {
   card: RetroCard;
   users: User[];
+  /** Board-level label definitions; resolved by id from `card.labels`. */
+  labels: Label[];
   anonymous: boolean;
   isTopVoted: boolean;
   isNew: boolean;
@@ -87,6 +90,7 @@ export type CardProps = {
 type CardViewProps = {
   card: RetroCard;
   users: User[];
+  labels: Label[];
   anonymous: boolean;
   isTopVoted: boolean;
   isNew: boolean;
@@ -112,6 +116,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
   {
     card,
     users,
+    labels,
     anonymous,
     isTopVoted,
     isNew,
@@ -226,6 +231,8 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
     >
       {isTopVoted && <div className="top-voted-flag">★ top voted</div>}
 
+      <LabelStripes labels={labels} cardLabelIds={card.labels} />
+
       {editing ? (
         <textarea
           ref={inputRef}
@@ -331,6 +338,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
 export function Card({
   card,
   users,
+  labels,
   anonymous,
   isTopVoted,
   isNew,
@@ -358,6 +366,7 @@ export function Card({
       ref={setNodeRef}
       card={card}
       users={users}
+      labels={labels}
       anonymous={anonymous}
       isTopVoted={isTopVoted}
       isNew={isNew}

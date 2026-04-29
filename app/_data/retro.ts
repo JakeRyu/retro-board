@@ -65,6 +65,7 @@ export type Board = {
   // Not user-editable in v1.
   color: string;
   columns: Column[];
+  labels: Label[];
 };
 
 // Fixed palette used to seed Board.color. F-03 will pick from the same set
@@ -78,6 +79,29 @@ export const BOARD_COLORS = [
   "#bb55cc", // magenta
   "#e05a5a", // red
 ] as const;
+
+// Human-readable names parallel to BOARD_COLORS — used as the fallback tooltip
+// label name when a label has no user-given name yet.
+export const BOARD_COLOR_NAMES: Record<string, string> = {
+  "#5e6ad2": "Indigo",
+  "#7a7fad": "Lavender",
+  "#3b9ee0": "Blue",
+  "#27a644": "Green",
+  "#e08e3b": "Amber",
+  "#bb55cc": "Magenta",
+  "#e05a5a": "Red",
+};
+
+// F-11 default label set: first 6 colors from the palette, no names.
+// Seeds and the post-load migration both go through this so the shape is
+// identical regardless of how a board got its labels.
+export function defaultLabels(): Label[] {
+  return BOARD_COLORS.slice(0, 6).map((color, i) => ({
+    id: "lbl-default-" + i,
+    name: "",
+    color,
+  }));
+}
 
 export const USERS: User[] = [
   { id: "me", name: "You", initials: "YO", color: "#5e6ad2" },
@@ -207,6 +231,7 @@ export const SEED_BOARD: Board = {
   starred: false,
   color: BOARD_COLORS[0],
   columns: SEED_COLUMNS,
+  labels: defaultLabels(),
 };
 
 // Additional seed boards so the boards list demonstrates grouping
@@ -250,6 +275,7 @@ export const SEED_BOARD_KANBAN: Board = {
     },
     { id: "done", title: "Done", desc: "", cards: [] },
   ],
+  labels: defaultLabels(),
 };
 
 export const SEED_BOARD_CLOSED: Board = {
@@ -265,6 +291,7 @@ export const SEED_BOARD_CLOSED: Board = {
   starred: false,
   color: BOARD_COLORS[1],
   columns: emptyKanbanColumns(),
+  labels: defaultLabels(),
 };
 
 export const SEED_BOARD_ARCHIVED: Board = {
@@ -280,6 +307,7 @@ export const SEED_BOARD_ARCHIVED: Board = {
   starred: false,
   color: BOARD_COLORS[3],
   columns: emptyKanbanColumns(),
+  labels: defaultLabels(),
 };
 
 export const SEED_BOARDS: Board[] = [

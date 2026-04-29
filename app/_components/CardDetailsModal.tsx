@@ -2,13 +2,20 @@
 
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Avatar, Icon } from "./Primitives";
-import type { Card, User } from "../_data/retro";
+import { LabelPicker } from "./Labels";
+import type { Card, Label, User } from "../_data/retro";
 
 const URL_REGEX = /\bhttps?:\/\/\S+/g;
 
 type CardDetailsModalProps = {
   card: Card;
   users: User[];
+  /** Board id — needed by sub-features whose store actions are board-scoped. */
+  boardId: string;
+  /** Board-level label set. The picker mutates this; the card holds ids only. */
+  labels: Label[];
+  /** True when the local user owns the board (controls label CRUD affordances). */
+  canEdit: boolean;
   isRetro: boolean;
   anonymous: boolean;
   readOnly: boolean;
@@ -24,6 +31,9 @@ type CardDetailsModalProps = {
 export function CardDetailsModal({
   card,
   users,
+  boardId,
+  labels,
+  canEdit,
   isRetro,
   anonymous,
   readOnly,
@@ -192,7 +202,14 @@ export function CardDetailsModal({
             {/* F-11 slot — owned by spec design-F-11.md */}
             <section className="cd-side-labels">
               <h3 className="cd-section-label">Labels</h3>
-              <p className="cd-placeholder">F-11.</p>
+              <LabelPicker
+                boardId={boardId}
+                cardId={card.id}
+                labels={labels}
+                cardLabelIds={card.labels ?? []}
+                readOnly={readOnly}
+                canEdit={canEdit}
+              />
             </section>
 
             {/* F-12 slot — owned by spec design-F-12.md */}
