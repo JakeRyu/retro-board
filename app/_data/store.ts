@@ -232,6 +232,14 @@ export function useActiveBoard(): Board {
   return board ?? s.boards[0] ?? SEED_BOARD;
 }
 
+// Returns the board with this id, or undefined if no such board exists.
+// Used by per-board routes so they can render a "not found" panel.
+export function useBoard(id: string): Board | undefined {
+  const s = useStore();
+  if (!id) return undefined;
+  return s.boards.find((b) => b.id === id);
+}
+
 // Test/dev helper — not used in product code.
 export function __resetStoreForTests() {
   state = seedState();

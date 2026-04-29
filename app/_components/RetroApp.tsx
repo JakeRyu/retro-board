@@ -1,16 +1,60 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Column } from "./Column";
 import { Sidebar } from "./Sidebar";
 import { Avatar, Icon } from "./Primitives";
+import type { Board } from "../_data/retro";
 import { USERS } from "../_data/retro";
-import { storeActions, useActiveBoard } from "../_data/store";
+import { storeActions, useBoard } from "../_data/store";
 
-export function RetroApp() {
-  const board = useActiveBoard();
+export function RetroApp({ boardId }: { boardId: string }) {
+  const board = useBoard(boardId);
+
+  // Keep the store's active id in sync with the route, so mutation helpers
+  // (which target the active board) operate on the board the user is viewing.
+  useEffect(() => {
+    if (board) storeActions.setActiveBoardId(board.id);
+  }, [board]);
+
+  if (!board) {
+    return <BoardNotFound />;
+  }
+
+  return <RetroAppLoaded board={board} />;
+}
+
+function BoardNotFound() {
+  return (
+    <div className="app">
+      <Sidebar />
+      <div className="main">
+        <div className="topbar">
+          <div className="crumbs">
+            <Link href="/" className="crumb-link">Boards</Link>
+            <span className="crumb-sep">/</span>
+            <span style={{ color: "var(--fg4)", fontStyle: "italic" }}>not found</span>
+          </div>
+        </div>
+        <div className="board-empty">
+          <div className="modal">
+            <h2>Board not found.</h2>
+            <p>This board may have been deleted, or the link is out of date.</p>
+            <div className="modal-actions">
+              <Link href="/" className="btn btn-primary">Back to boards</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RetroAppLoaded({ board }: { board: Board }) {
   const columns = board.columns;
   const closed = board.state === "closed";
+  const crumbPrefix = board.type === "retro" ? "Retros" : "Boards";
 
   const [anonymous, setAnonymous] = useState(false);
   const [themeOpen, setThemeOpen] = useState(true);
@@ -122,7 +166,7 @@ export function RetroApp() {
         {/* ---- top bar ---- */}
         <div className="topbar">
           <div className="crumbs">
-            <span style={{ color: "var(--fg3)" }}>Retros</span>
+            <Link href="/" className="crumb-link">{crumbPrefix}</Link>
             <span className="crumb-sep">/</span>
             <input
               className="board-title-input"

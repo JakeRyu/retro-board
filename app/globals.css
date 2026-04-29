@@ -142,6 +142,21 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 }
 .crumbs { display:flex; align-items:center; gap: 7px; font-size:13px; color: var(--fg2); font-weight: 510; min-width: 0; }
 .crumb-sep { color: var(--fg4); }
+.crumb-link {
+  color: var(--fg3);
+  text-decoration: none;
+  border-radius: 3px;
+  padding: 1px 4px;
+  margin: -1px -4px;
+  transition: background 120ms, color 120ms;
+}
+.crumb-link:hover { color: var(--fg1); background: var(--surface-04); }
+.crumb-link:focus-visible { outline: 1px solid var(--brand-indigo); outline-offset: 1px; }
+.board-empty {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 40px 18px;
+}
 .board-title-input {
   background: transparent; border: 1px solid transparent; outline: none;
   color: var(--fg1); font-size: 14px; font-weight: 590; letter-spacing: -0.15px;
