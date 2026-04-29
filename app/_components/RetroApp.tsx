@@ -22,6 +22,7 @@ import {
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import { Column, ColumnView } from "./Column";
 import { CardView } from "./Card";
+import { CardDetailsModal } from "./CardDetailsModal";
 import { Sidebar } from "./Sidebar";
 import { Avatar, Icon } from "./Primitives";
 import type { Board, Card as CardType, Column as ColumnT } from "../_data/retro";
@@ -102,9 +103,13 @@ function RetroAppLoaded({ board }: { board: Board }) {
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const [dragging, setDragging] = useState<DragKind | null>(null);
   const [liveMessage, setLiveMessage] = useState("");
+  const [openCardId, setOpenCardId] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const anonInitialized = useRef(false);
   const boardAreaRef = useRef<HTMLDivElement | null>(null);
+  // Element that originated the modal-open click — used to restore focus on
+  // close (F-07 PO #2). Cleared once consumed.
+  const openOriginRef = useRef<HTMLElement | null>(null);
 
   // DnD is gated on board state; closed/discussion fully disable it.
   const dndEnabled = isOwner && !closed && !discussion;
@@ -226,6 +231,9 @@ function RetroAppLoaded({ board }: { board: Board }) {
 
   useEffect(() => {
     if (!discussion) return;
+    // Don't bind discussion-mode keys while the card details modal is open —
+    // the modal owns Esc and ←/→ might collide with text editing inside it.
+    if (openCardId) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") next();
       if (e.key === "ArrowLeft") prev();
@@ -233,7 +241,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [discussion, next, prev, exitDiscussion]);
+  }, [discussion, next, prev, exitDiscussion, openCardId]);
 
   // ---- DnD wiring ----------------------------------------------------------
   const sensors = useSensors(
@@ -418,6 +426,92 @@ function RetroAppLoaded({ board }: { board: Board }) {
     storeActions.reorderColumn(board.id, colId, targetIdx);
     announce(`Moved column to position ${targetIdx + 1} of ${columns.length}.`);
   };
+
+  // ---- Card details modal (F-07) ------------------------------------------
+  const openCardModal = useCallback(
+    (cardId: string, originEl: HTMLElement | null) => {
+      const exists = columns.some((c) => c.cards.some((card) => card.id === cardId));
+      if (!exists) return;
+      openOriginRef.current = originEl;
+      setOpenCardId(cardId);
+      // Replace (not push) so refresh restores the modal but back-button
+      // doesn't accumulate a stack of card opens.
+      if (typeof window !== "undefined") {
+        history.replaceState(null, "", "#card=" + cardId);
+      }
+    },
+    [columns],
+  );
+
+  const closeCardModal = useCallback(() => {
+    setOpenCardId((prev) => {
+      if (!prev) return prev;
+      if (typeof window !== "undefined") {
+        history.replaceState(
+          null,
+          "",
+          window.location.pathname + window.location.search,
+        );
+      }
+      // Best-effort focus restore: only if the originating element is still
+      // in the DOM. If the card was DnD'd, deleted, or unmounted, no-op.
+      const origin = openOriginRef.current;
+      openOriginRef.current = null;
+      if (origin && document.body.contains(origin)) {
+        // Defer a frame so React commits the close before focus moves.
+        requestAnimationFrame(() => origin.focus());
+      }
+      return null;
+    });
+  }, []);
+
+  // Hash sync: open #card=<id> on mount and react to back/forward navigation.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const applyHash = () => {
+      const m = /^#card=(.+)$/.exec(window.location.hash);
+      if (!m) {
+        if (openCardId) setOpenCardId(null);
+        return;
+      }
+      const id = decodeURIComponent(m[1]);
+      const exists = columns.some((c) =>
+        c.cards.some((card) => card.id === id),
+      );
+      if (!exists) {
+        // Stale or cross-board link: silent no-op, strip the hash so a
+        // refresh doesn't re-trigger this branch.
+        history.replaceState(
+          null,
+          "",
+          window.location.pathname + window.location.search,
+        );
+        if (openCardId) setOpenCardId(null);
+        return;
+      }
+      setOpenCardId(id);
+    };
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+    // Re-run when the column tree shifts so a freshly added card opens via
+    // its hash, and so a deleted card's stale hash gets cleared.
+  }, [columns, openCardId]);
+
+  // If the open card disappears from under us (deleted, archived elsewhere),
+  // clear the hash and close.
+  useEffect(() => {
+    if (!openCardId) return;
+    const exists = columns.some((c) =>
+      c.cards.some((card) => card.id === openCardId),
+    );
+    if (!exists) closeCardModal();
+  }, [openCardId, columns, closeCardModal]);
+
+  const openCard =
+    openCardId
+      ? findCard(columns, openCardId) ?? null
+      : null;
 
   // Render the drag-overlay clone for the active drag.
   const renderOverlay = () => {
@@ -672,6 +766,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
                     onAutoEditConsumed={() => setAutoEditColId(null)}
                     onCardKeyboardMove={handleCardKeyboardMove}
                     onColumnKeyboardMove={handleColumnKeyboardMove}
+                    onOpenCardDetails={openCardModal}
                   />
                 ))}
               </SortableContext>
@@ -735,6 +830,20 @@ function RetroAppLoaded({ board }: { board: Board }) {
           </div>
         </div>
       </div>
+
+      {/* card details modal (F-07 shell) */}
+      {openCard && (
+        <CardDetailsModal
+          card={openCard}
+          users={USERS}
+          isRetro={board.type === "retro"}
+          anonymous={anonymous}
+          readOnly={closed}
+          onClose={closeCardModal}
+          onSaveTitle={(cardId, title) => storeActions.saveCard(cardId, title)}
+          onVote={onVote}
+        />
+      )}
 
       {/* aria-live announcer for keyboard / drag movement */}
       <div className="dnd-live" aria-live="polite" role="status">

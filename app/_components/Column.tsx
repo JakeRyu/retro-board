@@ -41,6 +41,7 @@ export type ColumnProps = {
     dir: "up" | "down" | "left" | "right",
   ) => void;
   onColumnKeyboardMove?: (colId: string, dir: "left" | "right") => void;
+  onOpenCardDetails?: (cardId: string, originEl: HTMLElement | null) => void;
 };
 
 export function Column(props: ColumnProps) {
@@ -105,6 +106,7 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
       onAutoEditConsumed,
       onCardKeyboardMove,
       onColumnKeyboardMove,
+      onOpenCardDetails,
       isDragging,
       isFollower,
       editingTitle,
@@ -381,6 +383,7 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
                   onSave={onSaveCard}
                   onDelete={onDeleteCard}
                   onKeyboardMove={onCardKeyboardMove}
+                  onOpenDetails={onOpenCardDetails}
                 />
               ))
             )}

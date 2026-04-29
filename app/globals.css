@@ -495,6 +495,73 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .modal p { margin: 0 0 18px; font-size: 13px; color: var(--fg2); line-height: 1.5; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
+/* ---------- card details modal (F-07 shell) ----------
+   Slot wrappers (.cd-description, .cd-checklist, .cd-comments,
+   .cd-side-due, .cd-side-labels, .cd-side-members, .cd-side-archive)
+   are owned by F-08–F-14. F-07 only ships their layout/spacing. */
+.modal.modal-card-details {
+  position: relative;
+  width: 720px; max-width: 92vw;
+  max-height: 80vh;
+  padding: 22px 22px 18px;
+  display: flex; flex-direction: column;
+  /* Override the narrow .modal default so wide content lays out correctly. */
+}
+.cd-close {
+  position: absolute;
+  top: 14px; right: 14px;
+}
+.cd-header {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-right: 36px;
+  padding-bottom: 14px; margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.cd-title-input {
+  font-size: 18px; font-weight: 590; letter-spacing: -0.2px;
+  width: 100%; max-width: none; min-width: 0;
+}
+.cd-vote-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.cd-grid {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 24px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+.cd-main { display: flex; flex-direction: column; min-width: 0; }
+.cd-side { display: flex; flex-direction: column; }
+
+.cd-description, .cd-checklist, .cd-comments { margin-bottom: 18px; }
+.cd-main > section:last-child { margin-bottom: 0; }
+.cd-side-due, .cd-side-labels, .cd-side-members, .cd-side-archive {
+  margin-bottom: 14px;
+}
+.cd-side > section:last-child { margin-bottom: 0; }
+.cd-side-archive {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 14px;
+}
+
+.cd-section-label {
+  margin: 0 0 6px;
+  font-size: 11px; font-weight: 510;
+  color: var(--fg4);
+  text-transform: uppercase; letter-spacing: 0.7px;
+}
+.cd-placeholder {
+  margin: 0;
+  font-size: 12px; color: var(--fg4); font-style: italic;
+}
+
+@media (max-width: 640px) {
+  .cd-grid { grid-template-columns: 1fr; }
+}
+
 /* ---------- create-board dialog (F-03) ---------- */
 .modal.modal-create { width: 460px; }
 .modal.modal-create h2 { margin-bottom: 14px; }

@@ -77,6 +77,9 @@ export type CardProps = {
     cardId: string,
     dir: "up" | "down" | "left" | "right",
   ) => void;
+  /** Open the card details modal. The originating element is passed so
+   *  the modal can restore focus to it on close (F-07 PO #2). */
+  onOpenDetails?: (cardId: string, originEl: HTMLElement | null) => void;
 };
 
 // Visual-only card body — used both inline (via Sortable) and by the DragOverlay
@@ -98,6 +101,7 @@ type CardViewProps = {
     cardId: string,
     dir: "up" | "down" | "left" | "right",
   ) => void;
+  onOpenDetails?: (cardId: string, originEl: HTMLElement | null) => void;
   // dnd-kit attributes/listeners are spread by the wrapper, not here.
   attributes?: Record<string, unknown>;
   listeners?: Record<string, unknown>;
@@ -119,6 +123,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
     onSave,
     onDelete,
     onKeyboardMove,
+    onOpenDetails,
     attributes,
     listeners,
     style,
@@ -182,11 +187,30 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
     onKeyboardMove(card.id, dir);
   };
 
+  // Click-to-open the details modal. dnd-kit's 6px activation distance means
+  // a real drag suppresses this synthetic click for free; we just need to
+  // ignore clicks that originated on the controls inside the card body.
+  const onCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!onOpenDetails) return;
+    if (editing) return;
+    if (isFollower) return;
+    if (e.defaultPrevented) return;
+    const target = e.target as HTMLElement | null;
+    if (
+      target &&
+      target.closest(".kebab-trigger, .kebab-menu, .vote-btn, .card-edit-input")
+    ) {
+      return;
+    }
+    onOpenDetails(card.id, localRef.current);
+  };
+
   return (
     <div
       ref={setRef}
       tabIndex={dndEnabled && !editing ? 0 : -1}
       onKeyDown={onCardKeyDown}
+      onClick={onCardClick}
       style={style}
       className={
         "card" +
@@ -306,6 +330,7 @@ export function Card({
   onSave,
   onDelete,
   onKeyboardMove,
+  onOpenDetails,
 }: CardProps) {
   const sortable = useSortable({
     id: card.id,
@@ -333,6 +358,7 @@ export function Card({
       onSave={onSave}
       onDelete={onDelete}
       onKeyboardMove={onKeyboardMove}
+      onOpenDetails={onOpenDetails}
       attributes={attributes as unknown as Record<string, unknown>}
       listeners={listeners as unknown as Record<string, unknown>}
       style={style}

@@ -145,6 +145,7 @@ The current product is a **single hi-fi retro board** that lives at the app root
   - Clicking the card body (not the kebab, not the vote button) opens a modal with the card's full state.
   - Sections: Title (inline edit), Description (markdown-light: line breaks + links rendered, no full markdown renderer), Checklist, Comments, Sidebar with Due date / Labels / Members / Archive.
   - Esc and overlay click close. URL hash updates to `#card=<id>` so the modal survives refresh and is shareable in-tab.
+  - On close, focus returns to the originating card element if it's still in the DOM (best-effort; silent no-op if the card has moved or been deleted).
   - Edits are autosaved on blur; no explicit Save button.
   - In retro mode, vote button + voter avatars also appear in the modal header.
   - Read-only when board is closed: all controls disabled, content visible.
@@ -354,6 +355,7 @@ The current product is a **single hi-fi retro board** that lives at the app root
   - Card-edit cross-fade on body change.
   - Card-delete collapse (height + opacity, 180ms).
   - Column add/delete fade.
+  - Modal overlays (close-board confirm, card details) use the pointerdown-vs-click pattern so a text-selection drag that releases over the overlay does not close the modal.
   - Reduced-motion media query disables all of the above.
 - **Out of scope for v1:** Lost-connection banner, "joined 2 min ago" presence tooltips, animations triggered by *other users* — these need a backend.
 - **Backend follow-up:** wire the same animation hooks to incoming socket events.
