@@ -10,6 +10,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Card } from "./Card";
 import { Icon } from "./Primitives";
 import type { Column as ColumnType, Label, User, Card as CardT } from "../_data/retro";
+import { useAddCardRequest } from "../_hooks/useAddCardRequest";
 
 const MAX_TITLE = 60;
 
@@ -144,6 +145,14 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
     useEffect(() => {
       if (adding && inputRef.current) inputRef.current.focus();
     }, [adding]);
+
+    // F-19 `c` shortcut: open this column's add-card composer when the
+    // global handler targets it. Read-only columns don't render the add
+    // button at all so we guard here too — request becomes a no-op.
+    useAddCardRequest(col.id, () => {
+      if (readOnly) return;
+      setAdding(true);
+    });
 
     useEffect(() => {
       if (autoEditTitle && titleEditable) {

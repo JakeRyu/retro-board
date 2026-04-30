@@ -1941,3 +1941,38 @@ textarea.field-input {
 /* Manage labels modal — modal width is fine at the .modal default; the
    single-rule below switches the picker to management mode. */
 .label-picker.manage-only .label-checkbox { display: none; }
+
+/* F-19 keyboard shortcuts cheat-sheet. Reuses .modal / .modal-overlay /
+   .kbd; the rules below only own the cheat-sheet's internal layout. */
+.modal.modal-cheat-sheet {
+  width: 460px;
+}
+.cheat-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.cheat-group-heading {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--fg4);
+  margin-bottom: 6px;
+}
+.cheat-row {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--fg2);
+}
+.cheat-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}

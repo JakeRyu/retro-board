@@ -6,6 +6,8 @@ import { useStore } from "../_data/store";
 import type { Board } from "../_data/retro";
 import { Avatar, Icon } from "./Primitives";
 import { CreateBoardDialog } from "./CreateBoardDialog";
+import { GlobalShortcuts } from "./GlobalShortcuts";
+import { ShortcutsCheatSheet } from "./ShortcutsCheatSheet";
 import { Toast } from "./Toast";
 import {
   openCreateBoardDialog,
@@ -132,6 +134,8 @@ export function Sidebar() {
         </div>
       </div>
       <CreateBoardDialog open={dialog.open} onClose={dialog.close} />
+      <ShortcutsCheatSheet />
+      <GlobalShortcuts />
       <Toast />
     </aside>
   );

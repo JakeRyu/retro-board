@@ -44,6 +44,8 @@ import {
   isFilterActive,
   type BoardFilter,
 } from "../_lib/cardMatchesFilter";
+import { requestAddCard } from "../_hooks/useAddCardRequest";
+import { isShortcutsCheatSheetOpen } from "./ShortcutsCheatSheet";
 
 export function RetroApp({ boardId }: { boardId: string }) {
   const board = useBoard(boardId);
@@ -371,6 +373,41 @@ function RetroAppLoaded({ board }: { board: Board }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [discussion, next, prev, exitDiscussion, openCardId]);
+
+  // F-19 board-scoped shortcuts: `c` focuses the first column's add-card
+  // composer; `/` opens the filter popover. Suppressed in discussion mode
+  // (the filter is hidden, and `c` would be ambiguous when columns are
+  // sort-by-votes), in read-only/closed boards (no add affordance), and
+  // when the user is typing in a field.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (t instanceof HTMLElement) {
+        const tag = t.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        if (t.isContentEditable) return;
+      }
+      if (isShortcutsCheatSheetOpen()) return;
+      if (openCardId) return;
+
+      if (e.key === "c" || e.key === "C") {
+        if (closed || discussion) return;
+        const first = columns[0];
+        if (!first) return;
+        e.preventDefault();
+        requestAddCard(first.id);
+        return;
+      }
+      if (e.key === "/") {
+        if (discussion) return;
+        e.preventDefault();
+        setFilterOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [columns, closed, discussion, openCardId]);
 
   // ---- DnD wiring ----------------------------------------------------------
   const sensors = useSensors(
