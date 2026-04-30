@@ -37,6 +37,7 @@ import type { Board, Card as CardType, Column as ColumnT } from "../_data/retro"
 import { USERS } from "../_data/retro";
 import { storeActions, useBoard } from "../_data/store";
 import { useIsOwner } from "../_hooks/useIsOwner";
+import { fireToast } from "../_hooks/useToast";
 import {
   EMPTY_FILTER,
   cardMatchesFilter,
@@ -123,7 +124,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
   const [confirmClose, setConfirmClose] = useState(false);
   const [confirmDeleteColId, setConfirmDeleteColId] = useState<string | null>(null);
   const [autoEditColId, setAutoEditColId] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const [dragging, setDragging] = useState<DragKind | null>(null);
   const [liveMessage, setLiveMessage] = useState("");
@@ -144,7 +144,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
   const [manageLabelsOpen, setManageLabelsOpen] = useState(false);
   const [confirmArchiveBoard, setConfirmArchiveBoard] = useState(false);
   const router = useRouter();
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const anonInitialized = useRef(false);
   const boardAreaRef = useRef<HTMLDivElement | null>(null);
   // Element that originated the modal-open click — used to restore focus on
@@ -200,12 +199,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
     liveCardCount > 0 &&
     matchingCardCount === 0;
 
-  const fireToast = useCallback((msg: string) => {
-    setToast(msg);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 2400);
-  }, []);
-
   const onVote = (cardId: string) => {
     storeActions.toggleVote(cardId);
   };
@@ -230,10 +223,13 @@ function RetroAppLoaded({ board }: { board: Board }) {
   // F-14: live-card kebab and modal-sidebar "Archive card" both call this.
   // No confirm — archive is reversible. Hard delete moved to deleteCardForever
   // (only reachable from the archive panel and the modal sidebar's archived
-  // state). F-22 will add an Undo button on the toast.
+  // state). F-22 attaches Undo to the toast — `unarchiveCard` already restores
+  // every card field via the existing archive bucket, so no extra snapshot.
   const onArchiveCard = (cardId: string) => {
     storeActions.archiveCard(board.id, cardId);
-    fireToast("Card archived.");
+    fireToast("Card archived.", () => {
+      storeActions.unarchiveCard(board.id, cardId);
+    });
   };
 
   const onUnarchiveCard = (cardId: string) => {
@@ -271,13 +267,23 @@ function RetroAppLoaded({ board }: { board: Board }) {
   };
 
   const performDeleteColumn = (colId: string) => {
+    // F-22: snapshot the column object + its index BEFORE deleting so Undo can
+    // splice the exact same column (with all its cards) back into place. The
+    // store doesn't keep a tombstone — without this snapshot the column object
+    // would be gone by the time the user clicks Undo.
+    const idx = columns.findIndex((c) => c.id === colId);
+    const snapshot = idx >= 0 ? columns[idx] : null;
     if (focusColId === colId) {
-      const idx = columns.findIndex((c) => c.id === colId);
       const next = columns[idx + 1] ?? columns[idx - 1];
       setFocusColId(next?.id ?? "");
     }
     storeActions.deleteColumn(board.id, colId);
     setConfirmDeleteColId(null);
+    if (snapshot) {
+      fireToast("Column deleted.", () => {
+        storeActions.insertColumn(board.id, snapshot, idx);
+      });
+    }
   };
 
   const confirmDeleteTarget = confirmDeleteColId
@@ -310,11 +316,18 @@ function RetroAppLoaded({ board }: { board: Board }) {
   };
 
   // F-17: archive the board (soft delete) then return to the boards list,
-  // where the board now appears in the Archived group from F-02. Navigation
-  // is the feedback — no toast.
+  // where the board now appears in the Archived group from F-02. F-22 adds a
+  // toast with Undo — fired before navigation so the global toast host (in the
+  // Sidebar, mounted on both pages) renders it on the boards list. Undo clears
+  // archivedAt and routes back to this board.
   const archiveBoard = () => {
-    storeActions.archiveBoard(board.id);
+    const boardId = board.id;
+    storeActions.archiveBoard(boardId);
     setConfirmArchiveBoard(false);
+    fireToast("Board archived.", () => {
+      storeActions.unarchiveBoard(boardId);
+      router.push(`/boards/${boardId}`);
+    });
     router.push("/");
   };
 
@@ -343,7 +356,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
         ? "Anonymous mode is on — authors are hidden for everyone."
         : "Anonymous mode is off — authors are visible again."
     );
-  }, [anonymous, fireToast]);
+  }, [anonymous]);
 
   useEffect(() => {
     if (!discussion) return;
@@ -1133,8 +1146,8 @@ function RetroAppLoaded({ board }: { board: Board }) {
         {liveMessage}
       </div>
 
-      {/* toast */}
-      <div className={"toast" + (toast ? " show" : "")}>{toast}</div>
+      {/* F-22: toast moved to the global host in <Sidebar> so it survives
+          archive-board's `router.push("/")`. Fire via `fireToast(msg, undo?)`. */}
     </div>
   );
 }

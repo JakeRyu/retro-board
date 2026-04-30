@@ -1641,7 +1641,16 @@ textarea.field-input {
   z-index: 90;
   display: flex; align-items: center; gap: 8px;
 }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+/* F-22: undo affordance lives inside the toast pill; styled as an indigo text
+   link so it reads as an action without breaking the chip's calm look. */
+.toast .toast-sep { color: var(--fg4); font-size: 12px; }
+.toast .toast-undo {
+  background: none; border: 0; padding: 0;
+  font: inherit; font-weight: 600;
+  color: var(--brand-indigo); cursor: pointer;
+}
+.toast .toast-undo:hover { filter: brightness(1.15); }
 
 /* ---------- avatar ---------- */
 .avatar {

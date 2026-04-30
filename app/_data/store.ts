@@ -484,6 +484,21 @@ export const storeActions = {
     }));
   },
 
+  // F-22: re-insertion helper used by the column-delete Undo. Takes a full
+  // Column object (cards and all) and splices it back at `index`, clamped to
+  // [0, columns.length] so a delete-then-reorder-then-undo can't crash. No-op
+  // if a column with the same id is already present (defensive against a
+  // double-undo race).
+  insertColumn(boardId: string, column: Column, index: number) {
+    updateBoardById(boardId, (b) => {
+      if (b.columns.some((c) => c.id === column.id)) return b;
+      const next = b.columns.slice();
+      const target = Math.max(0, Math.min(index, next.length));
+      next.splice(target, 0, column);
+      return { ...b, columns: next };
+    });
+  },
+
   // Move a card across (or within) columns to an explicit index in the target.
   // No-op when source and destination resolve to the same slot.
   moveCard(

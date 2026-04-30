@@ -6,6 +6,7 @@ import { useStore } from "../_data/store";
 import type { Board } from "../_data/retro";
 import { Avatar, Icon } from "./Primitives";
 import { CreateBoardDialog } from "./CreateBoardDialog";
+import { Toast } from "./Toast";
 import {
   openCreateBoardDialog,
   useCreateBoardDialogHost,
@@ -131,6 +132,7 @@ export function Sidebar() {
         </div>
       </div>
       <CreateBoardDialog open={dialog.open} onClose={dialog.close} />
+      <Toast />
     </aside>
   );
 }
