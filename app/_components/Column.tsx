@@ -139,6 +139,15 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
     const titleInputRef = useRef<HTMLInputElement | null>(null);
     const headRef = useRef<HTMLDivElement | null>(null);
+    // F-21: column add fade. Drop the class after the keyframe finishes so the
+    // node returns to default styling — no lasting effect. Skipped for the
+    // <DragOverlay> follower clone because its mount is not a "new column".
+    const [isMounting, setIsMounting] = useState(!isFollower);
+    useEffect(() => {
+      if (!isMounting) return;
+      const t = window.setTimeout(() => setIsMounting(false), 260);
+      return () => window.clearTimeout(t);
+    }, [isMounting]);
 
     const titleEditable = canEdit && !readOnly && !discussion;
 
@@ -250,7 +259,8 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
           "col" +
           (focused ? " focused" : "") +
           (isDragging ? " drag-ghost" : "") +
-          (isFollower ? " drag-follower col" : "")
+          (isFollower ? " drag-follower col" : "") +
+          (isMounting ? " col-new" : "")
         }
       >
         <div

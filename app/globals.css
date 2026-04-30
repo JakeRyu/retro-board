@@ -1730,10 +1730,6 @@ textarea.field-input {
   white-space: nowrap; border: 0;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .drag-follower { transform: none; }
-}
-
 /* ---------- entrance animation for new cards ---------- */
 @keyframes card-in {
   0% { opacity: 0; transform: translateY(-4px); border-color: var(--brand-violet); }
@@ -1741,6 +1737,78 @@ textarea.field-input {
   100% { opacity: 1; transform: translateY(0); }
 }
 .card.new { animation: card-in 360ms ease-out; }
+
+/* ---------- F-21: card body cross-fade on edit ----------
+   The .card-body element is keyed on `card.body` in Card.tsx, so on a save
+   React unmounts the prior text node and mounts a fresh one. This keyframe
+   gently fades the new text in instead of teleporting. Skipped for cards
+   off-screen because animation runs on mount, not paint — but cards that
+   were off-screen at edit time were already not animating in HANDOVER §4.4. */
+@keyframes body-fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.card .card-body {
+  animation: body-fade-in 140ms ease-out;
+}
+
+/* ---------- F-21: card archive collapse (180ms) ----------
+   Card.tsx adds `.archiving` to the source DOM node, then triggers actual
+   archive after a single rAF tick + 180ms. We rely on transition (not
+   keyframes) so the captured offsetHeight starts the collapse smoothly.
+   max-height is set inline by the JS helper via element.style.maxHeight =
+   element.offsetHeight + 'px' before the class flip. */
+.card.archiving {
+  max-height: 0 !important;
+  opacity: 0;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  border-top-width: 0 !important;
+  border-bottom-width: 0 !important;
+  pointer-events: none;
+  transition:
+    max-height 180ms ease,
+    opacity 180ms ease,
+    margin 180ms ease,
+    padding 180ms ease,
+    border-width 180ms ease;
+}
+
+/* ---------- F-21: column add fade ----------
+   New columns mount with .col-new for one frame, then it gets stripped.
+   Same indigo-pulse mood as cards but on the column chrome. */
+@keyframes col-fade-in {
+  0% { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.col.col-new { animation: col-fade-in 240ms ease-out; }
+
+/* ---------- F-21: reduced-motion master switch ----------
+   Combines the F-06 follower-tilt rule with a project-wide killswitch for
+   the animations introduced in F-21 + earlier features. Drop-indicator and
+   focus rings are informational, so they're left alone. */
+@media (prefers-reduced-motion: reduce) {
+  .drag-follower { transform: none; }
+  .card.new,
+  .col.col-new,
+  .card .card-body { animation: none; }
+  .card.archiving {
+    /* Skip the 180ms collapse — caller still chains the action after rAF. */
+    transition: none;
+  }
+  .modal-overlay,
+  .modal-overlay .modal,
+  .archive-panel,
+  .toast,
+  .theme-bar,
+  .discussion-bar,
+  .board-card,
+  .anon-banner {
+    transition: none !important;
+  }
+}
 
 /* ---------- boards list (F-02) ---------- */
 .boards-page {

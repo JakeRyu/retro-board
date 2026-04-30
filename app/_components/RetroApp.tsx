@@ -14,6 +14,7 @@ import {
   type DragStartEvent,
   type DragOverEvent,
   type DragEndEvent,
+  type DropAnimation,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -38,6 +39,7 @@ import { USERS } from "../_data/retro";
 import { storeActions, useBoard } from "../_data/store";
 import { useIsOwner } from "../_hooks/useIsOwner";
 import { fireToast } from "../_hooks/useToast";
+import { useOverlayDismiss } from "../_hooks/useOverlayDismiss";
 import {
   EMPTY_FILTER,
   cardMatchesFilter,
@@ -91,6 +93,14 @@ function BoardNotFound() {
 type DragKind =
   | { kind: "card"; cardId: string; fromColumnId: string }
   | { kind: "column"; columnId: string };
+
+// F-21: 140ms ease-out drop animation, matching F-06 §8 ("slides into final
+// position over 140ms ease-out"). The default dnd-kit drop animation is
+// 250ms `ease`, which feels heavy on top of our other 140ms transitions.
+const DROP_ANIM: DropAnimation = {
+  duration: 140,
+  easing: "cubic-bezier(0.18, 0.67, 0.6, 1)",
+};
 
 function findColumnByCardId(columns: ColumnT[], cardId: string): ColumnT | undefined {
   return columns.find((c) => c.cards.some((card) => card.id === cardId));
@@ -152,6 +162,19 @@ function RetroAppLoaded({ board }: { board: Board }) {
   // Element that originated the modal-open click — used to restore focus on
   // close (F-07 PO #2). Cleared once consumed.
   const openOriginRef = useRef<HTMLElement | null>(null);
+
+  // F-21: pointerdown-vs-click guards on every confirm overlay so a text-
+  // selection drag that releases over the overlay doesn't dismiss the modal.
+  const closeBoardOverlay = useOverlayDismiss(() => setConfirmClose(false));
+  const deleteColumnOverlay = useOverlayDismiss(() =>
+    setConfirmDeleteColId(null),
+  );
+  const deleteForeverOverlay = useOverlayDismiss(() =>
+    setConfirmDeleteForeverCardId(null),
+  );
+  const archiveBoardOverlay = useOverlayDismiss(() =>
+    setConfirmArchiveBoard(false),
+  );
 
   // DnD is gated on board state; closed/discussion fully disable it.
   const dndEnabled = isOwner && !closed && !discussion;
@@ -546,6 +569,19 @@ function RetroAppLoaded({ board }: { board: Board }) {
       targetColId,
       targetIndex,
     );
+    // F-21: pulse the card on cross-column arrival. Same 600ms newIds window
+    // the addCard flow uses, so the existing `.card.new` keyframe handles
+    // the visuals. Same-column reorder skips the pulse — column didn't change.
+    if (drag.fromColumnId !== targetColId) {
+      setNewIds((s) => new Set([...s, cardId]));
+      setTimeout(() => {
+        setNewIds((s) => {
+          const n = new Set(s);
+          n.delete(cardId);
+          return n;
+        });
+      }, 600);
+    }
     const targetCol = columns.find((c) => c.id === targetColId);
     if (targetCol) {
       announce(
@@ -1043,7 +1079,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
                 </button>
               )}
             </div>
-            <DragOverlay>{renderOverlay()}</DragOverlay>
+            <DragOverlay dropAnimation={DROP_ANIM}>{renderOverlay()}</DragOverlay>
           </DndContext>
         )}
 
@@ -1052,9 +1088,9 @@ function RetroAppLoaded({ board }: { board: Board }) {
       {/* close-board confirm */}
       <div
         className={"modal-overlay" + (confirmClose ? " open" : "")}
-        onClick={() => setConfirmClose(false)}
+        {...closeBoardOverlay.overlayProps}
       >
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal" {...closeBoardOverlay.panelProps}>
           <h2>Close this retro?</h2>
           <p>
             Cards stay readable. Voting and editing will be turned off. You can reopen the board
@@ -1074,9 +1110,9 @@ function RetroAppLoaded({ board }: { board: Board }) {
       {/* delete-column confirm (non-empty only) */}
       <div
         className={"modal-overlay" + (confirmDeleteTarget ? " open" : "")}
-        onClick={() => setConfirmDeleteColId(null)}
+        {...deleteColumnOverlay.overlayProps}
       >
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal" {...deleteColumnOverlay.panelProps}>
           <h2>Delete this column?</h2>
           <p>
             {confirmDeleteTarget
@@ -1142,9 +1178,9 @@ function RetroAppLoaded({ board }: { board: Board }) {
         className={
           "modal-overlay" + (confirmDeleteForeverCardId ? " open" : "")
         }
-        onClick={() => setConfirmDeleteForeverCardId(null)}
+        {...deleteForeverOverlay.overlayProps}
       >
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal" {...deleteForeverOverlay.panelProps}>
           <h2>Delete this card forever?</h2>
           <p>This can&apos;t be undone.</p>
           <div className="modal-actions">
@@ -1188,9 +1224,9 @@ function RetroAppLoaded({ board }: { board: Board }) {
       {/* F-17 archive-board confirm */}
       <div
         className={"modal-overlay" + (confirmArchiveBoard ? " open" : "")}
-        onClick={() => setConfirmArchiveBoard(false)}
+        {...archiveBoardOverlay.overlayProps}
       >
-        <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal" {...archiveBoardOverlay.panelProps}>
           <h2>Archive this board?</h2>
           <p>
             Archive this board? It moves to the Archived group on your boards

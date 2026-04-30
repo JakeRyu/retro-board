@@ -192,6 +192,33 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
     setEditing(false);
   };
 
+  // F-21: 180ms height + opacity collapse before the actual archive runs.
+  // We freeze the live offsetHeight onto inline `max-height` first so the
+  // transition has a real starting value; without that step the element
+  // collapses from `max-height: none` to 0 with no interpolation. Reduced-
+  // motion bypasses the wait via a CSS rule that zeros transitions.
+  const collapseAndArchive = () => {
+    const node = localRef.current;
+    if (!node || isFollower) {
+      onArchive(card.id);
+      return;
+    }
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      onArchive(card.id);
+      return;
+    }
+    node.style.maxHeight = node.offsetHeight + "px";
+    // Force a layout read so the next frame starts from the captured height.
+    void node.offsetHeight;
+    requestAnimationFrame(() => {
+      node.classList.add("archiving");
+      window.setTimeout(() => onArchive(card.id), 180);
+    });
+  };
+
   const onCardKeyDown = (e: React.KeyboardEvent) => {
     if (editing) return;
     if (!onKeyboardMove) return;
@@ -270,7 +297,9 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
           onBlur={submitEdit}
         />
       ) : (
-        <div className="card-body">{card.body}</div>
+        // F-21: keyed on `card.body` so a save unmounts the old text node and
+        // mounts a fresh one, which re-runs the `body-fade-in` keyframe in CSS.
+        <div key={card.body} className="card-body">{card.body}</div>
       )}
 
       {/* F-12: assignee pile sits above the foot, right-aligned, so it
@@ -377,7 +406,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
                 className="menu-item"
                 onClick={() => {
                   setMenuOpen(false);
-                  onArchive(card.id);
+                  collapseAndArchive();
                 }}
               >
                 <Icon name="inbox" size={12} /> Archive

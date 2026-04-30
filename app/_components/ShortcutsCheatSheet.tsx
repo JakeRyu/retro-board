@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useOverlayDismiss } from "../_hooks/useOverlayDismiss";
 
 // Module-level pub/sub mirrors useCreateBoardDialog: the cheat-sheet host
 // mounts once inside <Sidebar>, and any caller (the global shortcut handler)
@@ -77,6 +78,9 @@ export function ShortcutsCheatSheet() {
   }, [open]);
 
   const close = useCallback(() => setOpen(false), []);
+  // F-21: pointerdown-vs-click guard (text-selection drags ending on the
+  // overlay must not dismiss the sheet).
+  const overlay = useOverlayDismiss(close);
 
   // Esc to close. The modal-overlay click handler covers overlay clicks.
   useEffect(() => {
@@ -94,11 +98,11 @@ export function ShortcutsCheatSheet() {
   return (
     <div
       className={"modal-overlay" + (open ? " open" : "")}
-      onClick={close}
+      {...overlay.overlayProps}
     >
       <div
         className="modal modal-cheat-sheet"
-        onClick={(e) => e.stopPropagation()}
+        {...overlay.panelProps}
         role="dialog"
         aria-label="Keyboard shortcuts"
       >

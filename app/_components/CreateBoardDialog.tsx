@@ -11,6 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { BOARD_COLORS, type BoardType } from "../_data/retro";
 import { storeActions } from "../_data/store";
+import { useOverlayDismiss } from "../_hooks/useOverlayDismiss";
 
 type Props = {
   open: boolean;
@@ -170,10 +171,14 @@ export function CreateBoardDialog({ open, onClose }: Props) {
 
   const isRetro = type === "retro";
 
+  // F-21: pointerdown-vs-click guard so a text-selection drag from the title
+  // input that releases over the overlay doesn't cancel the dialog.
+  const overlay = useOverlayDismiss(onClose);
+
   return (
     <div
       className={"modal-overlay" + (open ? " open" : "")}
-      onClick={onClose}
+      {...overlay.overlayProps}
       aria-hidden={!open}
     >
       {/* Sentinel to catch shift-tab from the first focusable element. */}
@@ -185,7 +190,7 @@ export function CreateBoardDialog({ open, onClose }: Props) {
       />
       <div
         className="modal modal-create"
-        onClick={(e) => e.stopPropagation()}
+        {...overlay.panelProps}
         role="dialog"
         aria-modal="true"
         aria-labelledby={dialogTitleId}
