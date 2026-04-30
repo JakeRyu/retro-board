@@ -457,6 +457,29 @@ export const storeActions = {
     }));
   },
 
+  // --- Members (F-12) -----------------------------------------------------
+
+  // Toggle a user id in a card's assigneeIds. Mirrors toggleCardLabel:
+  // empty arrays are stored as `undefined` so persisted shape stays minimal,
+  // and the standard updateBoardById -> touch path bumps board.updatedAt.
+  toggleCardAssignee(boardId: string, cardId: string, userId: string) {
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) => {
+          if (card.id !== cardId) return card;
+          const current = card.assigneeIds ?? [];
+          const has = current.includes(userId);
+          const next = has
+            ? current.filter((id) => id !== userId)
+            : [...current, userId];
+          return { ...card, assigneeIds: next.length ? next : undefined };
+        }),
+      })),
+    }));
+  },
+
   reorderColumn(boardId: string, columnId: string, toIndex: number) {
     updateBoardById(boardId, (b) => {
       const fromIdx = b.columns.findIndex((c) => c.id === columnId);

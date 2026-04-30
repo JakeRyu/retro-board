@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Avatar, Icon } from "./Primitives";
 import { LabelPicker } from "./Labels";
+import { MemberPicker } from "./Members";
 import type { Card, Label, User } from "../_data/retro";
 
 const URL_REGEX = /\bhttps?:\/\/\S+/g;
@@ -215,7 +216,13 @@ export function CardDetailsModal({
             {/* F-12 slot — owned by spec design-F-12.md */}
             <section className="cd-side-members">
               <h3 className="cd-section-label">Members</h3>
-              <p className="cd-placeholder">F-12.</p>
+              <MemberPicker
+                boardId={boardId}
+                cardId={card.id}
+                users={users}
+                assigneeIds={card.assigneeIds ?? []}
+                readOnly={readOnly}
+              />
             </section>
 
             {/* F-14 slot — owned by spec design-F-14.md */}
