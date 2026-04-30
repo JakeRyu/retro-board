@@ -24,12 +24,19 @@ import { Column, ColumnView } from "./Column";
 import { CardView } from "./Card";
 import { CardDetailsModal } from "./CardDetailsModal";
 import { ArchivedItemsPanel } from "./ArchivedItemsPanel";
+import { FilterPopover } from "./FilterPopover";
 import { Sidebar } from "./Sidebar";
 import { Avatar, Icon } from "./Primitives";
 import type { Board, Card as CardType, Column as ColumnT } from "../_data/retro";
 import { USERS } from "../_data/retro";
 import { storeActions, useBoard } from "../_data/store";
 import { useIsOwner } from "../_hooks/useIsOwner";
+import {
+  EMPTY_FILTER,
+  cardMatchesFilter,
+  isFilterActive,
+  type BoardFilter,
+} from "../_lib/cardMatchesFilter";
 
 export function RetroApp({ boardId }: { boardId: string }) {
   const board = useBoard(boardId);
@@ -122,6 +129,10 @@ function RetroAppLoaded({ board }: { board: Board }) {
   const [confirmDeleteForeverCardId, setConfirmDeleteForeverCardId] = useState<
     string | null
   >(null);
+  // F-15: filter state lives per-mount and resets on board change. Not
+  // persisted — backlog calls this out as deliberately ephemeral.
+  const [filter, setFilter] = useState<BoardFilter>(EMPTY_FILTER);
+  const [filterOpen, setFilterOpen] = useState(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const anonInitialized = useRef(false);
   const boardAreaRef = useRef<HTMLDivElement | null>(null);
@@ -138,6 +149,45 @@ function RetroAppLoaded({ board }: { board: Board }) {
       setFocusColId(columns[0].id);
     }
   }, [columns, focusColId]);
+
+  // F-15: reset filter and close popover when the board id changes.
+  useEffect(() => {
+    setFilter(EMPTY_FILTER);
+    setFilterOpen(false);
+  }, [board.id]);
+
+  // F-15: close the popover whenever discussion mode kicks in. The filter
+  // button is unmounted in discussion, so the popover would otherwise be
+  // an orphan with no anchor.
+  useEffect(() => {
+    if (discussion) setFilterOpen(false);
+  }, [discussion]);
+
+  const filterActive = isFilterActive(filter);
+  const cardMatches = useCallback(
+    (card: CardType) => cardMatchesFilter(card, filter),
+    [filter],
+  );
+  // Tally used by the empty-filter-result strip. Only counts when filter is
+  // active so the "no cards match" message can't fire on a fully empty board.
+  const liveCardCount = useMemo(
+    () => columns.reduce((n, c) => n + c.cards.length, 0),
+    [columns],
+  );
+  const matchingCardCount = useMemo(() => {
+    if (!filterActive) return liveCardCount;
+    let n = 0;
+    for (const col of columns) {
+      for (const c of col.cards) if (cardMatches(c)) n += 1;
+    }
+    return n;
+  }, [columns, filterActive, cardMatches, liveCardCount]);
+  const showEmptyFilterResult =
+    filterActive &&
+    !discussion &&
+    columns.length > 0 &&
+    liveCardCount > 0 &&
+    matchingCardCount === 0;
 
   const fireToast = useCallback((msg: string) => {
     setToast(msg);
@@ -647,6 +697,21 @@ function RetroAppLoaded({ board }: { board: Board }) {
               <span className="more">+2</span>
             </div>
 
+            {/* F-15: hidden in discussion mode (focus mode owns the screen).
+                Read-only is fine — filter is a view concern. */}
+            {!discussion && (
+              <FilterPopover
+                open={filterOpen}
+                filter={filter}
+                labels={board.labels}
+                users={USERS}
+                onToggleOpen={() => setFilterOpen((o) => !o)}
+                onChange={setFilter}
+                onClose={() => setFilterOpen(false)}
+                onClearAll={() => setFilter(EMPTY_FILTER)}
+              />
+            )}
+
             {!closed && (
               <button
                 className="anon-toggle"
@@ -752,6 +817,23 @@ function RetroAppLoaded({ board }: { board: Board }) {
             </div>
           )}
 
+        {/* F-15: empty filter result. Sits above the board area so columns
+            and Add-card composers are still reachable for the user who
+            wants to fix the no-match by either clearing the filter or
+            adding a matching card. F-16 §3.4 owns the copy. */}
+        {showEmptyFilterResult && (
+          <div className="empty-filter-result">
+            <span>No cards match your filter.</span>
+            <button
+              type="button"
+              className="btn btn-subtle"
+              onClick={() => setFilter(EMPTY_FILTER)}
+            >
+              Clear filter
+            </button>
+          </div>
+        )}
+
         {/* ---- board area ---- */}
         {columns.length === 0 ? (
           <div className="empty-zero-cols">
@@ -794,6 +876,8 @@ function RetroAppLoaded({ board }: { board: Board }) {
                     autoEditTitle={autoEditColId === col.id}
                     newIds={newIds}
                     dndEnabled={dndEnabled}
+                    cardMatches={filterActive ? cardMatches : undefined}
+                    hideNonMatching={filter.hideNonMatching}
                     onVote={onVote}
                     onAdd={onAdd}
                     onSaveCard={onSaveCard}
