@@ -40,6 +40,9 @@ export type Card = {
   labels?: string[];
   assigneeIds?: string[];
   archivedAt?: string;
+  /** Column the card was in at archive time. Used by `unarchiveCard` to send
+   *  it home; falls back to first column if the column is gone. */
+  originColumnId?: string;
 };
 
 // Back-compat alias — older code paths still import RetroCard.
@@ -68,6 +71,10 @@ export type Board = {
   color: string;
   columns: Column[];
   labels: Label[];
+  /** Board-level archive bucket (F-14). Cards leave their column on archive
+   *  and live here until unarchived or permanently deleted. Each carries its
+   *  own `archivedAt` and `originColumnId`. */
+  archivedCards: Card[];
 };
 
 // Fixed palette used to seed Board.color. F-03 will pick from the same set
@@ -234,6 +241,7 @@ export const SEED_BOARD: Board = {
   color: BOARD_COLORS[0],
   columns: SEED_COLUMNS,
   labels: defaultLabels(),
+  archivedCards: [],
 };
 
 // Additional seed boards so the boards list demonstrates grouping
@@ -278,6 +286,7 @@ export const SEED_BOARD_KANBAN: Board = {
     { id: "done", title: "Done", desc: "", cards: [] },
   ],
   labels: defaultLabels(),
+  archivedCards: [],
 };
 
 export const SEED_BOARD_CLOSED: Board = {
@@ -294,6 +303,7 @@ export const SEED_BOARD_CLOSED: Board = {
   color: BOARD_COLORS[1],
   columns: emptyKanbanColumns(),
   labels: defaultLabels(),
+  archivedCards: [],
 };
 
 export const SEED_BOARD_ARCHIVED: Board = {
@@ -310,6 +320,7 @@ export const SEED_BOARD_ARCHIVED: Board = {
   color: BOARD_COLORS[3],
   columns: emptyKanbanColumns(),
   labels: defaultLabels(),
+  archivedCards: [],
 };
 
 export const SEED_BOARDS: Board[] = [

@@ -76,7 +76,9 @@ export type CardProps = {
   dndEnabled: boolean;
   onVote: (cardId: string) => void;
   onSave: (cardId: string, body: string) => void;
-  onDelete: (cardId: string) => void;
+  /** Soft-archive (F-14). Replaces the previous hard `onDelete`; "Delete
+   *  forever" lives only in the archive panel and modal sidebar. */
+  onArchive: (cardId: string) => void;
   /** Card-level keyboard reorder handlers (Ctrl/Cmd + Arrow). */
   onKeyboardMove?: (
     cardId: string,
@@ -102,7 +104,7 @@ type CardViewProps = {
   dndEnabled: boolean;
   onVote: (cardId: string) => void;
   onSave: (cardId: string, body: string) => void;
-  onDelete: (cardId: string) => void;
+  onArchive: (cardId: string) => void;
   onKeyboardMove?: (
     cardId: string,
     dir: "up" | "down" | "left" | "right",
@@ -128,7 +130,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
     dndEnabled,
     onVote,
     onSave,
-    onDelete,
+    onArchive,
     onKeyboardMove,
     onOpenDetails,
     attributes,
@@ -365,13 +367,13 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
                 <Icon name="settings" size={12} /> Edit card
               </button>
               <button
-                className="menu-item danger"
+                className="menu-item"
                 onClick={() => {
                   setMenuOpen(false);
-                  onDelete(card.id);
+                  onArchive(card.id);
                 }}
               >
-                <Icon name="close" size={12} /> Delete
+                <Icon name="inbox" size={12} /> Archive
               </button>
             </div>
           )}
@@ -392,7 +394,7 @@ export function Card({
   dndEnabled,
   onVote,
   onSave,
-  onDelete,
+  onArchive,
   onKeyboardMove,
   onOpenDetails,
 }: CardProps) {
@@ -421,7 +423,7 @@ export function Card({
       isDragging={isDragging}
       onVote={onVote}
       onSave={onSave}
-      onDelete={onDelete}
+      onArchive={onArchive}
       onKeyboardMove={onKeyboardMove}
       onOpenDetails={onOpenDetails}
       attributes={attributes as unknown as Record<string, unknown>}

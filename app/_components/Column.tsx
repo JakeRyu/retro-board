@@ -34,7 +34,7 @@ export type ColumnProps = {
   onVote: (cardId: string) => void;
   onAdd: (colId: string, body: string) => void;
   onSaveCard: (cardId: string, body: string) => void;
-  onDeleteCard: (cardId: string) => void;
+  onArchiveCard: (cardId: string) => void;
   onRenameColumn: (colId: string, title: string) => void;
   onRequestDeleteColumn: (colId: string) => void;
   onAutoEditConsumed?: () => void;
@@ -103,7 +103,7 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
       onVote,
       onAdd,
       onSaveCard,
-      onDeleteCard,
+      onArchiveCard,
       onRenameColumn,
       onRequestDeleteColumn,
       onAutoEditConsumed,
@@ -385,7 +385,7 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
                   dndEnabled={dndEnabled}
                   onVote={onVote}
                   onSave={onSaveCard}
-                  onDelete={onDeleteCard}
+                  onArchive={onArchiveCard}
                   onKeyboardMove={onCardKeyboardMove}
                   onOpenDetails={onOpenCardDetails}
                 />

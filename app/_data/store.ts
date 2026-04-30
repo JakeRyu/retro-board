@@ -101,10 +101,32 @@ function writeNow() {
 // Backfill fields added after a board was first persisted. Runs on every
 // hydrate so boards in old localStorage payloads pick up new defaults.
 function migrateBoard(b: Board): Board {
-  if (!Array.isArray(b.labels)) {
-    return { ...b, labels: defaultLabels() };
+  let next: Board = b;
+  if (!Array.isArray(next.labels)) {
+    next = { ...next, labels: defaultLabels() };
   }
-  return b;
+  // F-14: bucket out cards already flagged with archivedAt into the new
+  // board-level archivedCards array so column iteration code never has to
+  // skip them. Self-heals payloads written before F-14 landed.
+  if (!Array.isArray(next.archivedCards)) {
+    const collected: Card[] = [];
+    const cleanedColumns = next.columns.map((c) => {
+      const live: Card[] = [];
+      for (const card of c.cards) {
+        if (card.archivedAt) {
+          collected.push({
+            ...card,
+            originColumnId: card.originColumnId ?? c.id,
+          });
+        } else {
+          live.push(card);
+        }
+      }
+      return live.length === c.cards.length ? c : { ...c, cards: live };
+    });
+    next = { ...next, columns: cleanedColumns, archivedCards: collected };
+  }
+  return next;
 }
 
 function hydrateFromStorage() {
@@ -223,6 +245,7 @@ export const storeActions = {
       color,
       columns: defaultColumnsFor(input.type),
       labels: defaultLabels(),
+      archivedCards: [],
     };
     const prevState = state;
     state = {
@@ -321,13 +344,72 @@ export const storeActions = {
     }));
   },
 
-  deleteCard(cardId: string) {
-    updateColumns((cols) =>
-      cols.map((c) => ({
-        ...c,
-        cards: c.cards.filter((card) => card.id !== cardId),
-      })),
-    );
+  // --- Archive (F-14) ----------------------------------------------------
+
+  // Move a live card out of its column into board.archivedCards. Stamps
+  // archivedAt + originColumnId so unarchive can return it. No-op if the card
+  // isn't currently live in any column on this board.
+  archiveCard(boardId: string, cardId: string) {
+    updateBoardById(boardId, (b) => {
+      const fromCol = b.columns.find((c) =>
+        c.cards.some((card) => card.id === cardId),
+      );
+      if (!fromCol) return b;
+      const card = fromCol.cards.find((c) => c.id === cardId);
+      if (!card) return b;
+      const archived: Card = {
+        ...card,
+        archivedAt: new Date().toISOString(),
+        originColumnId: fromCol.id,
+      };
+      return {
+        ...b,
+        columns: b.columns.map((c) =>
+          c.id === fromCol.id
+            ? { ...c, cards: c.cards.filter((x) => x.id !== cardId) }
+            : c,
+        ),
+        archivedCards: [...b.archivedCards, archived],
+      };
+    });
+  },
+
+  // Pull a card out of board.archivedCards and reinsert it at the top of its
+  // origin column. Falls back to the first column if the origin is gone.
+  // No-op if the card isn't archived, or if the board has zero columns.
+  unarchiveCard(boardId: string, cardId: string) {
+    updateBoardById(boardId, (b) => {
+      const card = b.archivedCards.find((c) => c.id === cardId);
+      if (!card) return b;
+      if (b.columns.length === 0) return b;
+      const target =
+        b.columns.find((c) => c.id === card.originColumnId) ?? b.columns[0];
+      const live: Card = { ...card };
+      delete live.archivedAt;
+      delete live.originColumnId;
+      return {
+        ...b,
+        columns: b.columns.map((c) =>
+          c.id === target.id ? { ...c, cards: [live, ...c.cards] } : c,
+        ),
+        archivedCards: b.archivedCards.filter((c) => c.id !== cardId),
+      };
+    });
+  },
+
+  // Hard delete from the archive bucket. Archived-only by contract: if the
+  // id resolves to a live card in any column, this is a no-op (callers must
+  // archive first, then delete forever). Used by the archive panel and the
+  // modal sidebar's "Delete forever" action.
+  deleteCardForever(boardId: string, cardId: string) {
+    updateBoardById(boardId, (b) => {
+      const inArchive = b.archivedCards.some((c) => c.id === cardId);
+      if (!inArchive) return b;
+      return {
+        ...b,
+        archivedCards: b.archivedCards.filter((c) => c.id !== cardId),
+      };
+    });
   },
 
   addColumn(boardId: string, title: string = "New column"): string {

@@ -7,6 +7,7 @@ import { Comments } from "./Comments";
 import { LabelPicker } from "./Labels";
 import { MemberPicker } from "./Members";
 import { DueDateField } from "./DueDate";
+import { formatRelativeTime } from "../_lib/relativeTime";
 import type { Card, Label, User } from "../_data/retro";
 
 const URL_REGEX = /\bhttps?:\/\/\S+/g;
@@ -27,6 +28,13 @@ type CardDetailsModalProps = {
   onSaveTitle: (cardId: string, title: string) => void;
   onSaveDescription: (cardId: string, description: string) => void;
   onVote: (cardId: string) => void;
+  // F-14 sidebar slot actions. All three are no-confirm at the modal level —
+  // archive is reversible (toast only), unarchive is reversible, and
+  // deleteCardForever opens its own confirm modal owned by the parent so the
+  // confirm doesn't fight the card-details modal's overlay click handling.
+  onArchive: (cardId: string) => void;
+  onUnarchive: (cardId: string) => void;
+  onRequestDeleteForever: (cardId: string) => void;
 };
 
 // F-07 SHELL ONLY. Each `.cd-*` slot below is an empty labeled wrapper that
@@ -45,6 +53,9 @@ export function CardDetailsModal({
   onSaveTitle,
   onSaveDescription,
   onVote,
+  onArchive,
+  onUnarchive,
+  onRequestDeleteForever,
 }: CardDetailsModalProps) {
   const [titleDraft, setTitleDraft] = useState(card.body);
   // Tracks where pointerdown landed so an in-modal text-selection drag that
@@ -243,8 +254,13 @@ export function CardDetailsModal({
 
             {/* F-14 slot — owned by spec design-F-14.md */}
             <section className="cd-side-archive">
-              <h3 className="cd-section-label">Actions</h3>
-              <p className="cd-placeholder">Archive will be added in F-14.</p>
+              <ArchiveSlot
+                card={card}
+                readOnly={readOnly}
+                onArchive={onArchive}
+                onUnarchive={onUnarchive}
+                onRequestDeleteForever={onRequestDeleteForever}
+              />
             </section>
           </aside>
         </div>
@@ -426,6 +442,71 @@ function CardDescription({
       disabled={readOnly}
       rows={4}
     />
+  );
+}
+
+// --- F-14 Archive slot -------------------------------------------------------
+
+type ArchiveSlotProps = {
+  card: Card;
+  readOnly: boolean;
+  onArchive: (cardId: string) => void;
+  onUnarchive: (cardId: string) => void;
+  onRequestDeleteForever: (cardId: string) => void;
+};
+
+// Two-state slot: live (Archive) vs archived (Unarchive + Delete forever).
+// Both danger-tinted buttons use `.cd-side-action.danger-tone` so we don't
+// promote them to solid `.btn-danger` red — the only solid red is reserved
+// for the irreversible delete-forever confirm modal.
+function ArchiveSlot({
+  card,
+  readOnly,
+  onArchive,
+  onUnarchive,
+  onRequestDeleteForever,
+}: ArchiveSlotProps) {
+  const archived = !!card.archivedAt;
+  if (!archived) {
+    return (
+      <>
+        <h3 className="cd-section-label">Actions</h3>
+        <button
+          type="button"
+          className="cd-side-action btn-ghost danger-tone"
+          onClick={() => onArchive(card.id)}
+          disabled={readOnly}
+        >
+          <Icon name="inbox" size={13} /> Archive card
+        </button>
+      </>
+    );
+  }
+  return (
+    <>
+      <h3 className="cd-section-label">Archived</h3>
+      {card.archivedAt && (
+        <p className="cd-archived-at">
+          Archived {formatRelativeTime(card.archivedAt)}
+        </p>
+      )}
+      <button
+        type="button"
+        className="cd-side-action btn-ghost"
+        onClick={() => onUnarchive(card.id)}
+        disabled={readOnly}
+      >
+        <Icon name="arrowUp" size={13} /> Unarchive card
+      </button>
+      <button
+        type="button"
+        className="cd-side-action btn-ghost danger-tone"
+        onClick={() => onRequestDeleteForever(card.id)}
+        disabled={readOnly}
+      >
+        <Icon name="close" size={13} /> Delete forever
+      </button>
+    </>
   );
 }
 

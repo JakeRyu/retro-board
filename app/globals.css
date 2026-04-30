@@ -560,6 +560,115 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   font-size: 12px; color: var(--fg4); font-style: italic;
 }
 
+/* ---------- card archive sidebar slot (F-14) ----------
+   Two-state slot: live shows "Archive card", archived shows "Unarchive" +
+   "Delete forever". Both danger-tinted buttons reuse `.btn-ghost` and add a
+   `.danger-tone` modifier so we don't escalate to solid `.btn-danger` red —
+   solid red is reserved for the irreversible delete-forever confirm. */
+.cd-side-action {
+  display: flex; align-items: center; gap: 6px;
+  width: 100%; height: 30px; padding: 0 10px;
+  border-radius: 6px; font-size: 12px; font-weight: 510;
+  justify-content: flex-start;
+  margin-top: 6px;
+}
+.cd-side-action:first-of-type { margin-top: 0; }
+.cd-side-action:disabled { opacity: 0.5; cursor: not-allowed; }
+.cd-archived-at {
+  margin: 0 0 8px;
+  font-size: 11px; color: var(--fg4);
+}
+
+/* Shared danger-tone modifier — used by .cd-side-action and .btn-toolbar
+   so the archive panel rows and the modal sidebar match. */
+.cd-side-action.danger-tone,
+.btn-toolbar.danger-tone {
+  color: var(--danger);
+}
+.cd-side-action.danger-tone:hover:not(:disabled),
+.btn-toolbar.danger-tone:hover:not(:disabled) {
+  background: rgba(217,119,119,0.08);
+  color: var(--danger-hi);
+}
+
+/* ---------- archive panel (F-14) ---------- */
+/* Temp entry point above the board footer. F-17 will move it into the
+   topbar settings menu. */
+.archived-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  align-self: flex-start;
+  margin: 0 18px 14px;
+  padding: 4px 6px; border-radius: 4px;
+  font-size: 12px; font-weight: 510; color: var(--fg4);
+  background: transparent; border: 0;
+  transition: color 120ms, background 120ms;
+}
+.archived-link:hover { color: var(--fg2); background: var(--surface-04); }
+
+/* Right-anchored panel overlay variant of .modal-overlay. */
+.archive-panel-overlay {
+  justify-content: flex-end;
+  align-items: stretch;
+}
+.archive-panel {
+  display: flex; flex-direction: column;
+  width: 420px; max-width: 92vw; height: 100%;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-standard);
+  box-shadow: rgba(0,0,0,0.5) -16px 0 40px;
+  transform: translateX(20px);
+  transition: transform 180ms ease;
+}
+.archive-panel-overlay.open .archive-panel { transform: translateX(0); }
+
+.archive-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 18px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+.archive-panel-head h2 {
+  margin: 0;
+  font-size: 16px; font-weight: 590; letter-spacing: -0.15px;
+  color: var(--fg1);
+}
+.archive-panel-readonly {
+  padding: 8px 18px;
+  font-size: 12px; color: var(--fg4);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--surface-02);
+}
+.archive-panel-body {
+  flex: 1; overflow-y: auto;
+  padding: 6px 12px 18px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+
+.archive-empty {
+  margin: 32px 0;
+  text-align: center;
+  font-size: 13px; color: var(--fg4);
+}
+
+.archive-row {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 8px;
+  border-radius: 6px;
+  transition: background 120ms;
+}
+.archive-row:hover { background: var(--surface-04); }
+.archive-row-title {
+  font-size: 13px; font-weight: 510; color: var(--fg1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.archive-row-meta {
+  font-size: 11px; color: var(--fg4);
+}
+.archive-row-actions {
+  display: flex; gap: 6px; justify-content: flex-end;
+  margin-top: 6px;
+}
+
 /* ---------- card description (F-08) ---------- */
 .cd-description-render {
   font-size: 13px; line-height: 1.55;

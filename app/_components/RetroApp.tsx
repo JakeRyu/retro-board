@@ -23,6 +23,7 @@ import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
 import { Column, ColumnView } from "./Column";
 import { CardView } from "./Card";
 import { CardDetailsModal } from "./CardDetailsModal";
+import { ArchivedItemsPanel } from "./ArchivedItemsPanel";
 import { Sidebar } from "./Sidebar";
 import { Avatar, Icon } from "./Primitives";
 import type { Board, Card as CardType, Column as ColumnT } from "../_data/retro";
@@ -86,6 +87,16 @@ function findCard(columns: ColumnT[], cardId: string): CardType | undefined {
   return undefined;
 }
 
+// F-14: find an open card across both live columns and the board-level
+// archive bucket so the modal can stay open across an archive action and so
+// `#card=<id>` deep links to archived cards resolve into the modal in its
+// archived-state branch.
+function findCardOnBoard(board: Board, cardId: string): CardType | undefined {
+  const live = findCard(board.columns, cardId);
+  if (live) return live;
+  return board.archivedCards.find((c) => c.id === cardId);
+}
+
 function RetroAppLoaded({ board }: { board: Board }) {
   const columns = board.columns;
   const closed = board.state === "closed";
@@ -104,6 +115,13 @@ function RetroAppLoaded({ board }: { board: Board }) {
   const [dragging, setDragging] = useState<DragKind | null>(null);
   const [liveMessage, setLiveMessage] = useState("");
   const [openCardId, setOpenCardId] = useState<string | null>(null);
+  const [archivePanelOpen, setArchivePanelOpen] = useState(false);
+  // F-14 permanent-delete confirm modal. Holds the id of the card slated for
+  // delete-forever; null when the modal is closed. The confirm modal itself
+  // only ever fires on cards that already live in board.archivedCards.
+  const [confirmDeleteForeverCardId, setConfirmDeleteForeverCardId] = useState<
+    string | null
+  >(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const anonInitialized = useRef(false);
   const boardAreaRef = useRef<HTMLDivElement | null>(null);
@@ -148,9 +166,22 @@ function RetroAppLoaded({ board }: { board: Board }) {
     fireToast("Card updated.");
   };
 
-  const onDeleteCard = (cardId: string) => {
-    if (!confirm("Delete this card? Everyone in the room will see it disappear.")) return;
-    storeActions.deleteCard(cardId);
+  // F-14: live-card kebab and modal-sidebar "Archive card" both call this.
+  // No confirm — archive is reversible. Hard delete moved to deleteCardForever
+  // (only reachable from the archive panel and the modal sidebar's archived
+  // state). F-22 will add an Undo button on the toast.
+  const onArchiveCard = (cardId: string) => {
+    storeActions.archiveCard(board.id, cardId);
+    fireToast("Card archived.");
+  };
+
+  const onUnarchiveCard = (cardId: string) => {
+    storeActions.unarchiveCard(board.id, cardId);
+    fireToast("Card unarchived.");
+  };
+
+  const onDeleteCardForever = (cardId: string) => {
+    storeActions.deleteCardForever(board.id, cardId);
     fireToast("Card deleted.");
   };
 
@@ -430,7 +461,11 @@ function RetroAppLoaded({ board }: { board: Board }) {
   // ---- Card details modal (F-07) ------------------------------------------
   const openCardModal = useCallback(
     (cardId: string, originEl: HTMLElement | null) => {
-      const exists = columns.some((c) => c.cards.some((card) => card.id === cardId));
+      // Look in both live columns and the F-14 archive bucket so a deep link
+      // (or a card that just got archived from the panel) still resolves.
+      const exists =
+        columns.some((c) => c.cards.some((card) => card.id === cardId)) ||
+        board.archivedCards.some((c) => c.id === cardId);
       if (!exists) return;
       openOriginRef.current = originEl;
       setOpenCardId(cardId);
@@ -440,7 +475,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
         history.replaceState(null, "", "#card=" + cardId);
       }
     },
-    [columns],
+    [columns, board.archivedCards],
   );
 
   const closeCardModal = useCallback(() => {
@@ -475,9 +510,9 @@ function RetroAppLoaded({ board }: { board: Board }) {
         return;
       }
       const id = decodeURIComponent(m[1]);
-      const exists = columns.some((c) =>
-        c.cards.some((card) => card.id === id),
-      );
+      const exists =
+        columns.some((c) => c.cards.some((card) => card.id === id)) ||
+        board.archivedCards.some((c) => c.id === id);
       if (!exists) {
         // Stale or cross-board link: silent no-op, strip the hash so a
         // refresh doesn't re-trigger this branch.
@@ -496,22 +531,21 @@ function RetroAppLoaded({ board }: { board: Board }) {
     return () => window.removeEventListener("hashchange", applyHash);
     // Re-run when the column tree shifts so a freshly added card opens via
     // its hash, and so a deleted card's stale hash gets cleared.
-  }, [columns, openCardId]);
+  }, [columns, board.archivedCards, openCardId]);
 
-  // If the open card disappears from under us (deleted, archived elsewhere),
-  // clear the hash and close.
+  // If the open card disappears from under us (permanently deleted), clear
+  // the hash and close. Archive doesn't count as disappear: the card moves
+  // into board.archivedCards and findCardOnBoard still resolves it.
   useEffect(() => {
     if (!openCardId) return;
-    const exists = columns.some((c) =>
-      c.cards.some((card) => card.id === openCardId),
-    );
+    const exists =
+      columns.some((c) => c.cards.some((card) => card.id === openCardId)) ||
+      board.archivedCards.some((c) => c.id === openCardId);
     if (!exists) closeCardModal();
-  }, [openCardId, columns, closeCardModal]);
+  }, [openCardId, columns, board.archivedCards, closeCardModal]);
 
   const openCard =
-    openCardId
-      ? findCard(columns, openCardId) ?? null
-      : null;
+    openCardId ? findCardOnBoard(board, openCardId) ?? null : null;
 
   // Render the drag-overlay clone for the active drag.
   const renderOverlay = () => {
@@ -532,7 +566,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
           isFollower
           onVote={() => {}}
           onSave={() => {}}
-          onDelete={() => {}}
+          onArchive={() => {}}
         />
       );
     }
@@ -558,7 +592,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
         onVote={() => {}}
         onAdd={() => {}}
         onSaveCard={() => {}}
-        onDeleteCard={() => {}}
+        onArchiveCard={() => {}}
         onRenameColumn={() => {}}
         onRequestDeleteColumn={() => {}}
       />
@@ -763,7 +797,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
                     onVote={onVote}
                     onAdd={onAdd}
                     onSaveCard={onSaveCard}
-                    onDeleteCard={onDeleteCard}
+                    onArchiveCard={onArchiveCard}
                     onRenameColumn={onRenameColumn}
                     onRequestDeleteColumn={onRequestDeleteColumn}
                     onAutoEditConsumed={() => setAutoEditColId(null)}
@@ -781,6 +815,19 @@ function RetroAppLoaded({ board }: { board: Board }) {
             </div>
             <DragOverlay>{renderOverlay()}</DragOverlay>
           </DndContext>
+        )}
+
+        {/* F-14 temporary entry point. Hidden when the archive is empty.
+            F-17 will move this into the board settings menu in the topbar. */}
+        {!discussion && board.archivedCards.length > 0 && (
+          <button
+            className="archived-link"
+            type="button"
+            onClick={() => setArchivePanelOpen(true)}
+          >
+            <Icon name="inbox" size={12} /> View archived (
+            {board.archivedCards.length})
+          </button>
         )}
       </div>
 
@@ -851,8 +898,58 @@ function RetroAppLoaded({ board }: { board: Board }) {
             storeActions.setCardDescription(board.id, cardId, description)
           }
           onVote={onVote}
+          onArchive={onArchiveCard}
+          onUnarchive={onUnarchiveCard}
+          onRequestDeleteForever={(cardId) =>
+            setConfirmDeleteForeverCardId(cardId)
+          }
         />
       )}
+
+      {/* F-14 archive panel — temp entry point (View archived link in board
+          area below). F-17 will route it from the topbar settings menu. */}
+      <ArchivedItemsPanel
+        board={board}
+        open={archivePanelOpen}
+        readOnly={closed}
+        onClose={() => setArchivePanelOpen(false)}
+        onUnarchive={onUnarchiveCard}
+        onRequestDeleteForever={(cardId) =>
+          setConfirmDeleteForeverCardId(cardId)
+        }
+      />
+
+      {/* delete-forever confirm (F-14) — solid red, irreversible */}
+      <div
+        className={
+          "modal-overlay" + (confirmDeleteForeverCardId ? " open" : "")
+        }
+        onClick={() => setConfirmDeleteForeverCardId(null)}
+      >
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <h2>Delete this card forever?</h2>
+          <p>This can&apos;t be undone.</p>
+          <div className="modal-actions">
+            <button
+              className="btn btn-ghost"
+              onClick={() => setConfirmDeleteForeverCardId(null)}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-danger"
+              onClick={() => {
+                if (confirmDeleteForeverCardId) {
+                  onDeleteCardForever(confirmDeleteForeverCardId);
+                }
+                setConfirmDeleteForeverCardId(null);
+              }}
+            >
+              Delete forever
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* aria-live announcer for keyboard / drag movement */}
       <div className="dnd-live" aria-live="polite" role="status">
