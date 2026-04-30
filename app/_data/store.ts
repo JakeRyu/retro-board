@@ -7,6 +7,7 @@ import type {
   Card,
   ChecklistItem,
   Column,
+  Comment,
   Label,
 } from "./retro";
 import { BOARD_COLORS, SEED_BOARD, SEED_BOARDS, defaultLabels } from "./retro";
@@ -625,6 +626,87 @@ export const storeActions = {
           if (target === fromIndex) return card;
           next.splice(target, 0, moved);
           return { ...card, checklist: next };
+        }),
+      })),
+    }));
+  },
+
+  // --- Comments (F-13) ---------------------------------------------------
+
+  // Append a new comment at the end of card.comments (the UI displays
+  // newest-on-top so the visual order is the reverse of insertion order).
+  // Empty/whitespace bodies are rejected; returns "" so the caller knows.
+  addComment(
+    boardId: string,
+    cardId: string,
+    body: string,
+    authorId: string = "me",
+  ): string {
+    const trimmed = body.trim();
+    if (!trimmed) return "";
+    const id =
+      "cmt-" +
+      Date.now().toString(36) +
+      "-" +
+      Math.floor(Math.random() * 1000).toString(36);
+    const now = new Date().toISOString();
+    const comment: Comment = {
+      id,
+      authorId,
+      body: trimmed,
+      createdAt: now,
+    };
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) => {
+          if (card.id !== cardId) return card;
+          const next = [...(card.comments ?? []), comment];
+          return { ...card, comments: next };
+        }),
+      })),
+    }));
+    return id;
+  },
+
+  // Trimmed empty body is rejected so the caller's revert path keeps the
+  // prior value intact. Stamps `updatedAt` so the row can render an
+  // "edited" hint.
+  editComment(boardId: string, cardId: string, commentId: string, body: string) {
+    const trimmed = body.trim();
+    if (!trimmed) return;
+    const now = new Date().toISOString();
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) => {
+          if (card.id !== cardId || !card.comments) return card;
+          return {
+            ...card,
+            comments: card.comments.map((cm) =>
+              cm.id === commentId
+                ? { ...cm, body: trimmed, updatedAt: now }
+                : cm,
+            ),
+          };
+        }),
+      })),
+    }));
+  },
+
+  // Drops the comment; if the list empties, drops the field entirely so the
+  // persisted shape stays minimal (matches labels/checklist pattern).
+  deleteComment(boardId: string, cardId: string, commentId: string) {
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) => {
+          if (card.id !== cardId || !card.comments) return card;
+          const next = card.comments.filter((cm) => cm.id !== commentId);
+          return { ...card, comments: next.length ? next : undefined };
         }),
       })),
     }));

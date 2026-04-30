@@ -764,6 +764,131 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 }
 .card-checklist-indicator.complete { color: var(--status-emerald); }
 
+/* ---------- card comments (F-13) ---------- */
+.comments {
+  display: flex; flex-direction: column;
+  gap: 14px;
+}
+
+.comment-composer {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.comment-composer-body {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+  gap: 6px;
+}
+.comment-composer-actions {
+  display: flex; justify-content: flex-end;
+}
+.comment-composer-actions .btn {
+  height: 26px; padding: 0 10px; font-size: 12px;
+}
+
+.comment-input,
+.comment-edit-input {
+  width: 100%;
+  background: var(--bg-surface); color: var(--fg1);
+  border: 1px solid var(--border-1); border-radius: 6px;
+  padding: 8px 10px;
+  font: inherit; font-size: 13px; line-height: 1.55;
+  resize: none; min-height: 60px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.comment-input:focus,
+.comment-edit-input:focus {
+  border-color: var(--brand-indigo);
+  box-shadow: 0 0 0 3px rgba(94,106,210,0.15);
+}
+
+.comment-list {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex; flex-direction: column;
+  gap: 12px;
+}
+
+.comment-row {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+}
+.comment-row > .avatar { flex-shrink: 0; margin-top: 1px; }
+.comment-content {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column;
+  gap: 4px;
+}
+.comment-head {
+  display: flex; align-items: baseline;
+  gap: 6px;
+  /* Reserve room on the right so the kebab never crashes into the time. */
+  padding-right: 22px;
+}
+.comment-author {
+  font-size: 13px; font-weight: 510; color: var(--fg2);
+}
+.comment-time {
+  font-size: 12px; color: var(--fg4);
+}
+.comment-edited {
+  font-size: 11px; font-style: italic; color: var(--fg4);
+}
+.comment-body {
+  font-size: 13px; line-height: 1.55;
+  color: var(--fg2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.comment-body a {
+  color: var(--brand-violet-hi);
+  text-decoration: underline;
+}
+.comment-body a:hover { color: var(--brand-violet); }
+
+.comment-actions {
+  display: flex; gap: 6px;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+.comment-actions .btn {
+  height: 26px; padding: 0 10px; font-size: 12px;
+}
+
+.comment-confirm-delete {
+  display: flex; align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  font-size: 12px; color: var(--fg3);
+}
+.comment-confirm-delete .btn {
+  height: 24px; padding: 0 10px; font-size: 11px;
+}
+
+.comment-kebab {
+  position: absolute;
+  top: 2px; right: 0;
+}
+/* Match Card.tsx pattern: kebab reveals on row hover/focus-within. */
+.comment-row:hover .comment-kebab,
+.comment-row:focus-within .comment-kebab { opacity: 1; }
+.comment-kebab-menu {
+  /* Anchor the menu under the kebab; reuse base .kebab-menu styling. */
+  top: 26px; right: 0;
+}
+
+.card-comment-indicator {
+  display: inline-flex; align-items: center; gap: 3px;
+  color: var(--fg4);
+  margin-right: 4px;
+  font-family: var(--font-mono); font-size: 10px;
+}
+
 /* ---------- card labels (F-11) ---------- */
 /* Stripes on the card preview — sit between the top-voted flag and the body. */
 .label-stripes {

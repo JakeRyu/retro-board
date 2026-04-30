@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Avatar, Icon } from "./Primitives";
 import { Checklist } from "./Checklist";
+import { Comments } from "./Comments";
 import { LabelPicker } from "./Labels";
 import { MemberPicker } from "./Members";
 import { DueDateField } from "./DueDate";
@@ -192,9 +193,13 @@ export function CardDetailsModal({
             {/* F-13 slot — owned by spec design-F-13.md */}
             <section className="cd-comments">
               <h3 className="cd-section-label">Comments</h3>
-              <p className="cd-placeholder">
-                Comments will be added in F-13.
-              </p>
+              <Comments
+                boardId={boardId}
+                cardId={card.id}
+                comments={card.comments ?? []}
+                users={users}
+                readOnly={readOnly}
+              />
             </section>
           </div>
 

@@ -20,7 +20,8 @@ type IconName =
   | "git"
   | "arrow"
   | "description"
-  | "checklist";
+  | "checklist"
+  | "comment";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   board: (
@@ -91,6 +92,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M3 18l1.5 1.5L7 17" />
     </>
   ),
+  comment: <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />,
 };
 
 type IconProps = {

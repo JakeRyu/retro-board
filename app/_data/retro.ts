@@ -18,6 +18,7 @@ export type Comment = {
   authorId: string;
   body: string;
   createdAt: string;
+  updatedAt?: string;
 };
 
 export type Label = {
