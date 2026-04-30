@@ -59,11 +59,16 @@ export function LabelStripes({ labels, cardLabelIds }: LabelStripesProps) {
 
 type LabelPickerProps = {
   boardId: string;
+  /** Card id is unused in management-only mode; pass an empty string then. */
   cardId: string;
   labels: Label[];
   cardLabelIds: string[];
   readOnly: boolean;
   canEdit: boolean;
+  /** F-17: hide the per-card checkbox column so the picker reads as a label
+   *  management surface (board settings → Manage labels) rather than a
+   *  card-level toggle. Rename / add / delete behavior is otherwise identical. */
+  manageOnly?: boolean;
 };
 
 export function LabelPicker({
@@ -73,13 +78,14 @@ export function LabelPicker({
   cardLabelIds,
   readOnly,
   canEdit,
+  manageOnly = false,
 }: LabelPickerProps) {
   const [creating, setCreating] = useState(false);
 
   const empty = labels.length === 0;
 
   return (
-    <div className="label-picker">
+    <div className={"label-picker" + (manageOnly ? " manage-only" : "")}>
       {empty && (
         <p className="label-empty">No labels yet. Create one.</p>
       )}
@@ -93,6 +99,7 @@ export function LabelPicker({
           checked={cardLabelIds.includes(label.id)}
           readOnly={readOnly}
           canEdit={canEdit}
+          manageOnly={manageOnly}
         />
       ))}
 
@@ -127,6 +134,7 @@ type LabelRowProps = {
   checked: boolean;
   readOnly: boolean;
   canEdit: boolean;
+  manageOnly: boolean;
 };
 
 function LabelRow({
@@ -136,6 +144,7 @@ function LabelRow({
   checked,
   readOnly,
   canEdit,
+  manageOnly,
 }: LabelRowProps) {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -156,6 +165,9 @@ function LabelRow({
 
   const onToggle = () => {
     if (readOnly) return;
+    // Management-only mode (F-17) hides the checkbox altogether, but defense
+    // in depth: if there's no card, there's nothing to toggle.
+    if (manageOnly || !cardId) return;
     storeActions.toggleCardLabel(boardId, cardId, label.id);
   };
 

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -24,6 +25,11 @@ import { Column, ColumnView } from "./Column";
 import { CardView } from "./Card";
 import { CardDetailsModal } from "./CardDetailsModal";
 import { ArchivedItemsPanel } from "./ArchivedItemsPanel";
+import {
+  BoardSettingsMenu,
+  EditThemeModal,
+  ManageLabelsModal,
+} from "./BoardSettingsMenu";
 import { FilterPopover } from "./FilterPopover";
 import { Sidebar } from "./Sidebar";
 import { Avatar, Icon } from "./Primitives";
@@ -133,6 +139,11 @@ function RetroAppLoaded({ board }: { board: Board }) {
   // persisted — backlog calls this out as deliberately ephemeral.
   const [filter, setFilter] = useState<BoardFilter>(EMPTY_FILTER);
   const [filterOpen, setFilterOpen] = useState(false);
+  // F-17: board settings sub-surfaces.
+  const [editThemeOpen, setEditThemeOpen] = useState(false);
+  const [manageLabelsOpen, setManageLabelsOpen] = useState(false);
+  const [confirmArchiveBoard, setConfirmArchiveBoard] = useState(false);
+  const router = useRouter();
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const anonInitialized = useRef(false);
   const boardAreaRef = useRef<HTMLDivElement | null>(null);
@@ -296,6 +307,30 @@ function RetroAppLoaded({ board }: { board: Board }) {
     setConfirmClose(false);
     setDiscussion(false);
     fireToast("Board closed. Cards stay readable.");
+  };
+
+  // F-17: archive the board (soft delete) then return to the boards list,
+  // where the board now appears in the Archived group from F-02. Navigation
+  // is the feedback — no toast.
+  const archiveBoard = () => {
+    storeActions.archiveBoard(board.id);
+    setConfirmArchiveBoard(false);
+    router.push("/");
+  };
+
+  const reopenBoard = () => {
+    storeActions.reopenBoard(board.id);
+    fireToast("Board reopened.");
+  };
+
+  const unarchiveBoard = () => {
+    storeActions.unarchiveBoard(board.id);
+    fireToast("Board unarchived.");
+  };
+
+  const saveTheme = (theme: string) => {
+    storeActions.setBoardTheme(board.id, theme);
+    setEditThemeOpen(false);
   };
 
   useEffect(() => {
@@ -735,6 +770,21 @@ function RetroAppLoaded({ board }: { board: Board }) {
                 Close board
               </button>
             )}
+
+            {/* F-17: settings menu — owner-gated, hidden in discussion mode
+                where the discussion-bar owns the topbar action cluster. */}
+            {!discussion && (
+              <BoardSettingsMenu
+                board={board}
+                isOwner={isOwner}
+                onEditTheme={() => setEditThemeOpen(true)}
+                onManageLabels={() => setManageLabelsOpen(true)}
+                onOpenArchive={() => setArchivePanelOpen(true)}
+                onArchiveBoard={() => setConfirmArchiveBoard(true)}
+                onReopenBoard={reopenBoard}
+                onUnarchiveBoard={unarchiveBoard}
+              />
+            )}
           </div>
         </div>
 
@@ -901,18 +951,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
           </DndContext>
         )}
 
-        {/* F-14 temporary entry point. Hidden when the archive is empty.
-            F-17 will move this into the board settings menu in the topbar. */}
-        {!discussion && board.archivedCards.length > 0 && (
-          <button
-            className="archived-link"
-            type="button"
-            onClick={() => setArchivePanelOpen(true)}
-          >
-            <Icon name="inbox" size={12} /> View archived (
-            {board.archivedCards.length})
-          </button>
-        )}
       </div>
 
       {/* close-board confirm */}
@@ -1030,6 +1068,47 @@ function RetroAppLoaded({ board }: { board: Board }) {
               }}
             >
               Delete forever
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* F-17 edit theme modal */}
+      <EditThemeModal
+        open={editThemeOpen}
+        initialValue={board.theme}
+        onCancel={() => setEditThemeOpen(false)}
+        onSave={saveTheme}
+      />
+
+      {/* F-17 manage labels modal — reuses LabelPicker in management mode */}
+      <ManageLabelsModal
+        open={manageLabelsOpen}
+        boardId={board.id}
+        labels={board.labels}
+        onClose={() => setManageLabelsOpen(false)}
+      />
+
+      {/* F-17 archive-board confirm */}
+      <div
+        className={"modal-overlay" + (confirmArchiveBoard ? " open" : "")}
+        onClick={() => setConfirmArchiveBoard(false)}
+      >
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <h2>Archive this board?</h2>
+          <p>
+            Archive this board? It moves to the Archived group on your boards
+            list. You can unarchive any time.
+          </p>
+          <div className="modal-actions">
+            <button
+              className="btn btn-ghost"
+              onClick={() => setConfirmArchiveBoard(false)}
+            >
+              Cancel
+            </button>
+            <button className="btn btn-danger" onClick={archiveBoard}>
+              Archive
             </button>
           </div>
         </div>

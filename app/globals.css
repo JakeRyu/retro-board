@@ -592,18 +592,8 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 }
 
 /* ---------- archive panel (F-14) ---------- */
-/* Temp entry point above the board footer. F-17 will move it into the
-   topbar settings menu. */
-.archived-link {
-  display: inline-flex; align-items: center; gap: 6px;
-  align-self: flex-start;
-  margin: 0 18px 14px;
-  padding: 4px 6px; border-radius: 4px;
-  font-size: 12px; font-weight: 510; color: var(--fg4);
-  background: transparent; border: 0;
-  transition: color 120ms, background 120ms;
-}
-.archived-link:hover { color: var(--fg2); background: var(--surface-04); }
+/* Entry point lives in the topbar board-settings menu (F-17); the panel
+   itself is unchanged. */
 
 /* Right-anchored panel overlay variant of .modal-overlay. */
 .archive-panel-overlay {
@@ -1877,3 +1867,50 @@ textarea.field-input {
 .board-card-menu .menu-item {
   text-decoration: none;
 }
+
+/* ---------- board settings menu (F-17) ---------- */
+/* Topbar settings popover. The trigger reuses .btn-icon shape so it sits
+   flush with the rest of the topbar action cluster. The menu inherits from
+   .kebab-menu — only the anchor + min-width change. */
+.board-settings-wrap {
+  position: relative;
+  display: inline-flex;
+}
+/* `.board-settings-btn` is a hook for future tweaks; today it inherits
+   `.btn-icon` shape verbatim, so no rules are needed. */
+.board-settings-menu {
+  position: absolute; top: 36px; right: 0;
+  min-width: 220px;
+}
+.menu-item-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg4);
+}
+.menu-divider {
+  height: 1px; margin: 4px 0;
+  background: var(--border-subtle);
+}
+
+/* Edit theme prompt modal — slightly wider than the default .modal so the
+   textarea has breathing room. */
+.modal.modal-edit-theme {
+  width: 480px;
+}
+.edit-theme-textarea {
+  width: 100%;
+  background: var(--bg-surface); color: var(--fg1);
+  border: 1px solid var(--brand-indigo); border-radius: 6px;
+  padding: 8px 10px;
+  font: inherit; font-size: 13px; line-height: 1.55;
+  resize: vertical; min-height: 96px;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(94,106,210,0.15);
+  font-family: inherit;
+  margin-bottom: 14px;
+}
+
+/* Manage labels modal — modal width is fine at the .modal default; the
+   single-rule below switches the picker to management mode. */
+.label-picker.manage-only .label-checkbox { display: none; }

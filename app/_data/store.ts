@@ -282,6 +282,38 @@ export const storeActions = {
     updateActiveBoard((b) => ({ ...b, state: s }));
   },
 
+  // F-17: edit the retro theme prompt from the board settings menu.
+  // Trims trailing whitespace; empty is allowed (theme bar collapses cleanly).
+  setBoardTheme(boardId: string, theme: string) {
+    const next = theme.replace(/\s+$/, "");
+    updateBoardById(boardId, (b) => ({ ...b, theme: next }));
+  },
+
+  // F-17: soft delete. Stamps archivedAt; the boards-list page groups archived
+  // boards into their own collapsed section. Reversible via unarchiveBoard.
+  // No-op when the board is already archived so a stale confirm in another
+  // tab can't double-stamp.
+  archiveBoard(boardId: string) {
+    updateBoardById(boardId, (b) =>
+      b.archivedAt ? b : { ...b, archivedAt: new Date().toISOString() },
+    );
+  },
+
+  // F-17: clear the archive stamp. Idempotent: no-op when already unarchived.
+  unarchiveBoard(boardId: string) {
+    updateBoardById(boardId, (b) =>
+      b.archivedAt ? { ...b, archivedAt: undefined } : b,
+    );
+  },
+
+  // F-17: flip a closed board back to open. Replaces the half-implemented
+  // one-way close from the original design. Idempotent.
+  reopenBoard(boardId: string) {
+    updateBoardById(boardId, (b) =>
+      b.state === "open" ? b : { ...b, state: "open" },
+    );
+  },
+
   setColumns(cols: Column[]) {
     updateColumns(() => cols);
   },
