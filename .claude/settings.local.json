@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(npm run *)",
+      "Bash(bun --version)",
+      "Bash(bun add *)",
+      "Bash(git stash *)"
+    ]
+  }
+}
