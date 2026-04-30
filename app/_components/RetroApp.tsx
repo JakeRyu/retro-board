@@ -46,6 +46,7 @@ import {
 } from "../_lib/cardMatchesFilter";
 import { requestAddCard } from "../_hooks/useAddCardRequest";
 import { isShortcutsCheatSheetOpen } from "./ShortcutsCheatSheet";
+import { exportActionItems, exportRetroSummary } from "../_lib/exportRetro";
 
 export function RetroApp({ boardId }: { boardId: string }) {
   const board = useBoard(boardId);
@@ -341,6 +342,31 @@ function RetroAppLoaded({ board }: { board: Board }) {
   const unarchiveBoard = () => {
     storeActions.unarchiveBoard(board.id);
     fireToast("Board unarchived.");
+  };
+
+  // F-20: clipboard exports for retro boards. Pure formatters live in
+  // _lib/exportRetro; this layer just owns clipboard + toast. Async-clipboard
+  // can reject (insecure context, permission, browser refusal); on failure we
+  // surface a single conversational toast rather than retrying with legacy
+  // execCommand fallbacks.
+  const copyToClipboard = async (text: string, successMsg: string) => {
+    try {
+      if (typeof navigator === "undefined" || !navigator.clipboard) {
+        throw new Error("Clipboard API unavailable");
+      }
+      await navigator.clipboard.writeText(text);
+      fireToast(successMsg);
+    } catch {
+      fireToast("Couldn't copy. Try again?");
+    }
+  };
+
+  const onCopyActionItems = () => {
+    void copyToClipboard(exportActionItems(board), "Action items copied.");
+  };
+
+  const onCopyFullSummary = () => {
+    void copyToClipboard(exportRetroSummary(board), "Retro summary copied.");
   };
 
   const saveTheme = (theme: string) => {
@@ -847,6 +873,12 @@ function RetroAppLoaded({ board }: { board: Board }) {
                 onArchiveBoard={() => setConfirmArchiveBoard(true)}
                 onReopenBoard={reopenBoard}
                 onUnarchiveBoard={unarchiveBoard}
+                onCopyActionItems={
+                  board.type === "retro" ? onCopyActionItems : undefined
+                }
+                onCopyFullSummary={
+                  board.type === "retro" ? onCopyFullSummary : undefined
+                }
               />
             )}
           </div>

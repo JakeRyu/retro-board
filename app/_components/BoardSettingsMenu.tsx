@@ -22,6 +22,10 @@ type BoardSettingsMenuProps = {
   onArchiveBoard: () => void;
   onReopenBoard: () => void;
   onUnarchiveBoard: () => void;
+  /** F-20 retro-only exports. Both pass the board through; the parent owns
+   *  clipboard + toast wiring so this menu stays presentational. */
+  onCopyActionItems?: () => void;
+  onCopyFullSummary?: () => void;
 };
 
 export function BoardSettingsMenu({
@@ -33,6 +37,8 @@ export function BoardSettingsMenu({
   onArchiveBoard,
   onReopenBoard,
   onUnarchiveBoard,
+  onCopyActionItems,
+  onCopyFullSummary,
 }: BoardSettingsMenuProps) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -67,6 +73,9 @@ export function BoardSettingsMenu({
   const showArchiveBoard = !archived;
   const showReopen = closed && !archived;
   const showUnarchive = archived;
+  // F-20: retro exports work even on closed / archived boards (read-only
+  // doesn't prevent reading) — exporting a finished retro is the whole point.
+  const showExports = isRetro && !!onCopyActionItems && !!onCopyFullSummary;
   // Divider sits between the "view" actions and the state-changing actions
   // when at least one of the latter is visible.
   const showDivider = showArchiveBoard || showReopen || showUnarchive;
@@ -115,6 +124,26 @@ export function BoardSettingsMenu({
             >
               Manage labels
             </button>
+          )}
+          {showExports && (
+            <>
+              <button
+                type="button"
+                className="menu-item"
+                role="menuitem"
+                onClick={click(onCopyActionItems!)}
+              >
+                Copy action items
+              </button>
+              <button
+                type="button"
+                className="menu-item"
+                role="menuitem"
+                onClick={click(onCopyFullSummary!)}
+              >
+                Copy full retro summary
+              </button>
+            </>
           )}
           <button
             type="button"
