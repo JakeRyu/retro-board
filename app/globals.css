@@ -1822,6 +1822,24 @@ textarea.field-input {
 .board-card-star:hover { color: var(--fg2); background: var(--surface-04); }
 .board-card-star.on { color: var(--brand-violet-hi); }
 
+/* F-18: inline star button on the per-board topbar. Same visual treatment as
+   .board-card-star but flows inline next to the state pill (no absolute
+   positioning). */
+.topbar-star {
+  width: 18px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 3px;
+  color: var(--fg4);
+  transition: color 120ms ease, background 120ms ease;
+  flex: 0 0 auto;
+}
+.topbar-star:hover { color: var(--fg2); background: var(--surface-04); }
+.topbar-star.on { color: var(--brand-violet-hi); }
+.topbar-star:focus-visible {
+  outline: 1px solid var(--brand-indigo);
+  outline-offset: 1px;
+}
+
 .board-card-title {
   margin: 0 22px 0 22px;
   font-size: 13px; font-weight: 590; color: var(--fg1);

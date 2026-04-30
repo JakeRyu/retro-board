@@ -126,6 +126,18 @@ function migrateBoard(b: Board): Board {
     });
     next = { ...next, columns: cleanedColumns, archivedCards: collected };
   }
+  // F-18: starred boards persisted before this feature shipped don't carry a
+  // starredAt timestamp. Seed it from updatedAt so the home-page "Starred"
+  // group has a deterministic, non-bunched order on first hydrate after the
+  // feature lands. Subsequent toggles overwrite via storeActions.toggleStar.
+  if (next.starred && !next.starredAt) {
+    next = { ...next, starredAt: next.updatedAt };
+  }
+  // Defensive: clear a stray starredAt if `starred` is false. Keeps the
+  // invariant `starred ⇔ starredAt set` so sort code can rely on it.
+  if (!next.starred && next.starredAt) {
+    next = { ...next, starredAt: undefined };
+  }
   return next;
 }
 
@@ -271,7 +283,14 @@ export const storeActions = {
   },
 
   toggleStar(boardId: string) {
-    updateBoardById(boardId, (b) => ({ ...b, starred: !b.starred }));
+    updateBoardById(boardId, (b) => {
+      const next = !b.starred;
+      return {
+        ...b,
+        starred: next,
+        starredAt: next ? new Date().toISOString() : undefined,
+      };
+    });
   },
 
   setBoardTitle(title: string) {

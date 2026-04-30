@@ -49,6 +49,14 @@ export function BoardsPage() {
   };
 
   const groups = partition(boards);
+  // F-18: Starred group orders by most-recently-starred. starredAt is set on
+  // toggle and backfilled from updatedAt by migrateBoard, so it's reliably
+  // populated for any board with starred=true.
+  groups.starred.sort((a, b) => {
+    const at = a.starredAt ?? a.updatedAt;
+    const bt = b.starredAt ?? b.updatedAt;
+    return bt.localeCompare(at);
+  });
   const totalBoards =
     groups.starred.length + groups.open.length + groups.closed.length + groups.archived.length;
 

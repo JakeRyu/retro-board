@@ -66,6 +66,9 @@ export type Board = {
   updatedAt: string;
   archivedAt?: string;
   starred: boolean;
+  /** ISO timestamp set when `starred` flips to true; cleared on unstar. Drives
+   *  most-recently-starred ordering in the boards-list "Starred" group. */
+  starredAt?: string;
   // Stable seeded color used by sidebar swatch and boards-list theme stripe.
   // Not user-editable in v1.
   color: string;
@@ -264,6 +267,7 @@ export const SEED_BOARD_KANBAN: Board = {
   createdAt: "2026-04-18T09:00:00.000Z",
   updatedAt: "2026-04-27T15:30:00.000Z",
   starred: true,
+  starredAt: "2026-04-27T15:30:00.000Z",
   color: BOARD_COLORS[2],
   columns: [
     {

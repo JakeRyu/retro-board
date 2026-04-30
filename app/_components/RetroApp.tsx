@@ -715,6 +715,20 @@ function RetroAppLoaded({ board }: { board: Board }) {
               />
               {closed ? "closed · read-only" : "open"}
             </span>
+            <button
+              type="button"
+              className={"topbar-star" + (board.starred ? " on" : "")}
+              onClick={() => storeActions.toggleStar(board.id)}
+              aria-label={board.starred ? "Unstar board" : "Star board"}
+              aria-pressed={board.starred}
+              title={board.starred ? "Unstar board" : "Star board"}
+            >
+              <Icon
+                name="star"
+                size={14}
+                fill={board.starred ? "currentColor" : "none"}
+              />
+            </button>
           </div>
 
           <div
