@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Avatar, Icon } from "./Primitives";
+import { Checklist } from "./Checklist";
 import { LabelPicker } from "./Labels";
 import { MemberPicker } from "./Members";
 import { DueDateField } from "./DueDate";
@@ -180,9 +181,12 @@ export function CardDetailsModal({
             {/* F-09 slot — owned by spec design-F-09.md */}
             <section className="cd-checklist">
               <h3 className="cd-section-label">Checklist</h3>
-              <p className="cd-placeholder">
-                Checklist will be added in F-09.
-              </p>
+              <Checklist
+                boardId={boardId}
+                cardId={card.id}
+                items={card.checklist ?? []}
+                readOnly={readOnly}
+              />
             </section>
 
             {/* F-13 slot — owned by spec design-F-13.md */}

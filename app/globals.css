@@ -613,6 +613,157 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   margin-right: 4px;
 }
 
+/* ---------- card checklist (F-09) ---------- */
+.checklist { display: flex; flex-direction: column; gap: 6px; }
+
+.checklist-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 4px;
+  font-size: 11px; color: var(--fg4);
+}
+.checklist-progress {
+  font-family: var(--font-mono); font-size: 11px;
+  color: var(--fg3);
+}
+
+.checklist-toggle-hide {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 22px; padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-1);
+  background: var(--surface-02);
+  color: var(--fg3);
+  font-size: 11px; font-weight: 510;
+  cursor: pointer;
+}
+.checklist-toggle-hide:hover {
+  color: var(--fg2);
+  border-color: var(--border-2);
+}
+.checklist-toggle-hide[data-on="true"] {
+  background: rgba(94,106,210,0.12);
+  border-color: rgba(94,106,210,0.4);
+  color: var(--brand-violet-hi);
+}
+
+.checklist-list { display: flex; flex-direction: column; }
+
+.checklist-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 4px;
+  border-radius: 6px;
+  min-height: 28px;
+  transition: background 120ms ease;
+}
+.checklist-item:hover,
+.checklist-item:focus-within { background: var(--surface-02); }
+
+.checklist-handle {
+  width: 14px; height: 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--fg4);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  flex-shrink: 0;
+}
+.checklist-item:hover .checklist-handle,
+.checklist-item:focus-within .checklist-handle { opacity: 1; }
+.checklist-handle:active { cursor: grabbing; }
+
+.checklist-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border: 1px solid var(--border-2);
+  border-radius: 3px;
+  background: var(--surface-02);
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  margin: 0;
+}
+.checklist-checkbox:checked {
+  background: var(--brand-indigo);
+  border-color: var(--brand-indigo);
+}
+.checklist-checkbox:checked::after {
+  content: ""; position: absolute;
+  left: 3px; top: 0px; width: 4px; height: 8px;
+  border: solid #fff; border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.checklist-checkbox:disabled { cursor: default; opacity: 0.6; }
+.checklist-checkbox:focus-visible {
+  outline: 1px solid var(--brand-indigo);
+  outline-offset: 2px;
+}
+
+.checklist-text {
+  flex: 1; min-width: 0;
+  font-size: 13px; color: var(--fg2);
+  cursor: text;
+  padding: 2px 4px; border-radius: 4px;
+  word-break: break-word;
+}
+.checklist-text.done { text-decoration: line-through; color: var(--fg4); }
+.checklist-item.done { opacity: 0.7; }
+.checklist-text:focus-visible {
+  outline: 1px solid var(--brand-indigo);
+  outline-offset: 1px;
+}
+
+.checklist-text-input {
+  flex: 1; min-width: 0;
+  background: var(--bg-surface); color: var(--fg1);
+  border: 1px solid var(--brand-indigo); border-radius: 4px;
+  padding: 2px 6px;
+  font: inherit; font-size: 13px;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(94,106,210,0.15);
+}
+
+.checklist-del {
+  width: 20px; height: 20px;
+  border: none; border-radius: 4px;
+  background: transparent; color: var(--fg4);
+  cursor: pointer;
+  opacity: 0; transition: opacity 120ms ease, color 120ms ease, background 120ms ease;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+}
+.checklist-item:hover .checklist-del,
+.checklist-item:focus-within .checklist-del { opacity: 1; }
+.checklist-del:hover {
+  color: var(--brand-violet-hi);
+  background: var(--surface-04);
+}
+
+.checklist-add {
+  margin-top: 4px;
+}
+.checklist-add-input {
+  width: 100%;
+  background: var(--surface-02); color: var(--fg1);
+  border: 1px solid var(--border-1); border-radius: 6px;
+  padding: 6px 10px;
+  font: inherit; font-size: 13px;
+  outline: none;
+}
+.checklist-add-input:focus {
+  border-color: var(--brand-indigo);
+  box-shadow: 0 0 0 3px rgba(94,106,210,0.15);
+}
+
+.card-checklist-indicator {
+  display: inline-flex; align-items: center; gap: 3px;
+  color: var(--fg4);
+  margin-right: 4px;
+  font-family: var(--font-mono); font-size: 10px;
+}
+.card-checklist-indicator.complete { color: var(--status-emerald); }
+
 /* ---------- card labels (F-11) ---------- */
 /* Stripes on the card preview — sit between the top-voted flag and the body. */
 .label-stripes {

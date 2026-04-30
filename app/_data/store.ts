@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import type { Board, BoardType, Card, Column, Label } from "./retro";
+import type {
+  Board,
+  BoardType,
+  Card,
+  ChecklistItem,
+  Column,
+  Label,
+} from "./retro";
 import { BOARD_COLORS, SEED_BOARD, SEED_BOARDS, defaultLabels } from "./retro";
 
 // Bump when the persisted shape changes in a way that needs migration.
@@ -513,6 +520,111 @@ export const storeActions = {
             ? current.filter((id) => id !== userId)
             : [...current, userId];
           return { ...card, assigneeIds: next.length ? next : undefined };
+        }),
+      })),
+    }));
+  },
+
+  // --- Checklist (F-09) ---------------------------------------------------
+
+  // Append a new item; returns the generated id so the caller can focus or
+  // animate it. Empty/whitespace text is rejected (no-op, returns "").
+  addChecklistItem(boardId: string, cardId: string, text: string): string {
+    const trimmed = text.trim();
+    if (!trimmed) return "";
+    const id = "cli-" + Date.now().toString(36) + "-" + Math.floor(Math.random() * 1000).toString(36);
+    const item: ChecklistItem = { id, text: trimmed, done: false };
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) => {
+          if (card.id !== cardId) return card;
+          const next = [...(card.checklist ?? []), item];
+          return { ...card, checklist: next };
+        }),
+      })),
+    }));
+    return id;
+  },
+
+  toggleChecklistItem(boardId: string, cardId: string, itemId: string) {
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) => {
+          if (card.id !== cardId || !card.checklist) return card;
+          return {
+            ...card,
+            checklist: card.checklist.map((it) =>
+              it.id === itemId ? { ...it, done: !it.done } : it,
+            ),
+          };
+        }),
+      })),
+    }));
+  },
+
+  // Trimmed empty text is rejected so the caller's revert path keeps the
+  // prior value intact. The component layer also short-circuits, but
+  // defending here keeps storage clean.
+  editChecklistItem(boardId: string, cardId: string, itemId: string, text: string) {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) => {
+          if (card.id !== cardId || !card.checklist) return card;
+          return {
+            ...card,
+            checklist: card.checklist.map((it) =>
+              it.id === itemId ? { ...it, text: trimmed } : it,
+            ),
+          };
+        }),
+      })),
+    }));
+  },
+
+  // Drops the item; if the list empties, drops the field entirely so the
+  // persisted shape stays minimal (matches labels/assignees pattern).
+  deleteChecklistItem(boardId: string, cardId: string, itemId: string) {
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) => {
+          if (card.id !== cardId || !card.checklist) return card;
+          const next = card.checklist.filter((it) => it.id !== itemId);
+          return { ...card, checklist: next.length ? next : undefined };
+        }),
+      })),
+    }));
+  },
+
+  reorderChecklist(
+    boardId: string,
+    cardId: string,
+    fromIndex: number,
+    toIndex: number,
+  ) {
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) => {
+          if (card.id !== cardId || !card.checklist) return card;
+          const list = card.checklist;
+          if (fromIndex < 0 || fromIndex >= list.length) return card;
+          const next = list.slice();
+          const [moved] = next.splice(fromIndex, 1);
+          const target = Math.max(0, Math.min(toIndex, next.length));
+          if (target === fromIndex) return card;
+          next.splice(target, 0, moved);
+          return { ...card, checklist: next };
         }),
       })),
     }));

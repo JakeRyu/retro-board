@@ -141,6 +141,10 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
   const isMine = card.authorId === "me" && !readOnly;
   const voted = card.voters.includes("me");
   const hasDescription = !!card.description && card.description.trim().length > 0;
+  const checklistTotal = card.checklist?.length ?? 0;
+  const checklistDone = card.checklist?.filter((i) => i.done).length ?? 0;
+  const hasChecklist = checklistTotal > 0;
+  const checklistComplete = hasChecklist && checklistDone === checklistTotal;
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(card.body);
@@ -283,6 +287,21 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
         ) : null}
         <div className="vote-row">
           <DueDatePill card={card} />
+          {hasChecklist && (
+            <span
+              className={
+                "card-checklist-indicator" +
+                (checklistComplete ? " complete" : "")
+              }
+              aria-label={`${checklistDone} of ${checklistTotal} checklist items complete`}
+              title={`${checklistDone} of ${checklistTotal} checklist items complete`}
+            >
+              <Icon name="checklist" size={12} />
+              <span>
+                {checklistDone}/{checklistTotal}
+              </span>
+            </span>
+          )}
           {hasDescription && (
             <span
               className="card-desc-indicator"
