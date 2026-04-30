@@ -457,6 +457,44 @@ export const storeActions = {
     }));
   },
 
+  // --- Due date (F-10) ----------------------------------------------------
+
+  // Pass `undefined` to clear. We store the raw ISO `YYYY-MM-DD` string with
+  // no normalisation — callers (the native date input or a future filter) own
+  // the format. Persisting an empty string would muddy the "set vs unset"
+  // signal, so empty/falsy values are dropped to `undefined`.
+  setCardDueDate(boardId: string, cardId: string, dueDate: string | undefined) {
+    const next = dueDate && dueDate.length > 0 ? dueDate : undefined;
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) =>
+          card.id === cardId ? { ...card, dueDate: next } : card,
+        ),
+      })),
+    }));
+  },
+
+  // Toggle the per-card "Mark complete" flag. Always stored as a real boolean
+  // (drops to `undefined` when false) so the persisted payload stays minimal.
+  toggleCardDueComplete(boardId: string, cardId: string) {
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) => ({
+        ...c,
+        cards: c.cards.map((card) => {
+          if (card.id !== cardId) return card;
+          const nextComplete = !card.dueComplete;
+          return {
+            ...card,
+            dueComplete: nextComplete ? true : undefined,
+          };
+        }),
+      })),
+    }));
+  },
+
   // --- Members (F-12) -----------------------------------------------------
 
   // Toggle a user id in a card's assigneeIds. Mirrors toggleCardLabel:

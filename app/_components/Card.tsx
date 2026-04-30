@@ -6,6 +6,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Avatar, Icon } from "./Primitives";
 import { LabelStripes } from "./Labels";
 import { AssigneeAvatars } from "./Members";
+import { DueDatePill } from "./DueDate";
 import type { Label, RetroCard, User } from "../_data/retro";
 
 type VotersProps = {
@@ -281,6 +282,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
           </span>
         ) : null}
         <div className="vote-row">
+          <DueDatePill card={card} />
           {hasDescription && (
             <span
               className="card-desc-indicator"

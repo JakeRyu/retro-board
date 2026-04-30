@@ -4,6 +4,7 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Avatar, Icon } from "./Primitives";
 import { LabelPicker } from "./Labels";
 import { MemberPicker } from "./Members";
+import { DueDateField } from "./DueDate";
 import type { Card, Label, User } from "../_data/retro";
 
 const URL_REGEX = /\bhttps?:\/\/\S+/g;
@@ -197,7 +198,13 @@ export function CardDetailsModal({
             {/* F-10 slot — owned by spec design-F-10.md */}
             <section className="cd-side-due">
               <h3 className="cd-section-label">Due date</h3>
-              <p className="cd-placeholder">F-10.</p>
+              <DueDateField
+                boardId={boardId}
+                cardId={card.id}
+                dueDate={card.dueDate}
+                dueComplete={card.dueComplete ?? false}
+                readOnly={readOnly}
+              />
             </section>
 
             {/* F-11 slot — owned by spec design-F-11.md */}

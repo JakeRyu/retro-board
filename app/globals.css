@@ -34,6 +34,8 @@
   /* ---- Status ---- */
   --status-green:   #27a644;
   --status-emerald: #10b981;
+  --warning:        #d4a04a;
+  --warning-tint:   rgba(212, 160, 74, 0.12);
   --danger:         #d97777;
   --danger-hi:      #f0a0a0;
 
@@ -833,6 +835,146 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ---------- card due date (F-10) ---------- */
+/* Pill — sits inside `.card-foot > .vote-row`, left of the description
+   indicator and voter pile. Status drives the colour modifier. */
+.due-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 510;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-04);
+  color: var(--fg3);
+  white-space: nowrap;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+/* .due-pill.future inherits from the base — neutral muted. */
+.due-pill.today {
+  background: var(--warning-tint);
+  color: var(--warning);
+  border-color: rgba(212, 160, 74, 0.25);
+}
+.due-pill.overdue {
+  background: rgba(217, 119, 119, 0.12);
+  color: var(--danger-hi);
+  border-color: rgba(217, 119, 119, 0.25);
+}
+.due-pill.complete {
+  background: var(--surface-02);
+  color: var(--fg4);
+  border-color: var(--border-subtle);
+  text-decoration: line-through;
+}
+
+/* Sidebar slot field. */
+.due-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.due-field .due-add {
+  align-self: flex-start;
+}
+.due-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--fg2);
+}
+.due-field-row.complete .due-field-label,
+.due-field-row.complete .due-field-label-btn {
+  text-decoration: line-through;
+  color: var(--fg4);
+}
+.due-field-label {
+  font-size: 12px;
+  color: var(--fg2);
+}
+.due-field-label-btn {
+  font-size: 12px;
+  color: var(--fg2);
+  background: transparent;
+  border: 0;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 120ms ease, color 120ms ease;
+}
+.due-field-label-btn:hover {
+  background: var(--surface-02);
+  color: var(--fg1);
+}
+.due-field-complete-badge {
+  font-size: 10px;
+  font-weight: 510;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--fg4);
+  border: 1px solid var(--border-subtle);
+  border-radius: 9999px;
+  padding: 1px 6px;
+  background: var(--surface-02);
+}
+.due-field-input {
+  /* Native <input type="date"> styled to match .field-input. color-scheme
+     hints the browser to render the picker in dark mode where supported. */
+  color-scheme: dark;
+  width: 100%;
+  background: var(--bg-surface);
+  color: var(--fg1);
+  border: 1px solid var(--border-2);
+  border-radius: 6px;
+  padding: 0 10px;
+  height: 30px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.due-field-input:focus {
+  border-color: var(--brand-indigo);
+  box-shadow: 0 0 0 3px rgba(94, 106, 210, 0.15);
+}
+.due-field-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.due-field-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--fg3);
+}
+.due-field-actions label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  width: 100%;
+}
+.due-field-actions label input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--brand-indigo);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.due-field-actions .btn {
+  height: 22px;
+  padding: 0 8px;
+  font-size: 11px;
 }
 
 @media (max-width: 640px) {

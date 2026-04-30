@@ -35,6 +35,7 @@ export type Card = {
   comments?: Comment[];
   checklist?: ChecklistItem[];
   dueDate?: string;
+  dueComplete?: boolean;
   labels?: string[];
   assigneeIds?: string[];
   archivedAt?: string;
