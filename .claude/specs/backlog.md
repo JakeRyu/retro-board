@@ -28,12 +28,13 @@ The following features shipped in F-01 through F-22 and are **accepted as-is** u
 | F-07 | Card details modal (minimal) | Keep. Holds: title (edit) + voters + description + action list only. All other sections removed in Part 2. |
 | F-08 | Card description | Keep. Drop description-icon indicator on card preview (visual noise). |
 | F-16 | Empty states | Keep. Remove "Empty filter result" copy when F-15 filter UI is deleted. |
-| F-17 | Board settings menu (slimmed) | Keep for: edit theme prompt, archive retro, reopen. **Drop**: Manage labels entry, Archived items entry. |
+| F-14 | Card archive (and unarchive) | Keep. The card details modal stays (for description + action list), so Archive/Unarchive lives naturally there. The recoverability of unarchive is a real retro safety net. |
+| F-17 | Board settings menu (slimmed) | Keep for: edit theme prompt, archive retro, reopen, Archived items. **Drop**: Manage labels entry. |
 | F-18 | Star / favorite | Keep. Teams pin their recurring retro. |
 | F-19 | Keyboard shortcuts (trimmed) | Keep `c`, `b`, `?`, discussion-mode arrows. **Drop** `/` (filter shortcut goes with F-15). Update cheat-sheet. |
 | F-20 | Action items export | Keep. Input changes: now exports the auto-built **Action** column produced by F-23, not a hardcoded rightmost column. |
 | F-21 | Realtime affordances | Keep. |
-| F-22 | Undo on destructive actions | Keep. More critical once F-14 archive is gone — card delete is now permanent, so undo toast is the only safety net. |
+| F-22 | Undo on destructive actions | Keep. Covers archive (F-14), column delete, board archive. Card "delete forever" from the archive panel is the only path that bypasses undo, by design. |
 
 ---
 
@@ -131,26 +132,6 @@ These features are pure kanban-product additions with no role in a retro meeting
 
 ---
 
-### F-14-RM — Remove card archive
-
-- **User story:** As a retro participant, I want to delete a sticky and have a brief undo window (F-22) as my safety net, without needing a separate archive system that accumulates deleted cards indefinitely.
-- **Why removing serves the user:** Archive-then-revisit is kanban hygiene. In a retro, a card you no longer want is just deleted. F-22 undo (6-second toast) already covers accidental deletes. The archive panel adds surface area and data complexity with no retro-meeting payoff.
-- **Files touched:** `ArchivedItemsPanel.tsx` (delete), `CardDetailsModal.tsx` (remove Archive action from sidebar, replace with Delete; verify Delete triggers F-22 undo toast), `BoardSettingsMenu.tsx` (remove Archived items entry), `store.ts` (remove `archiveCard`, `unarchiveCard`, `deleteCardForever` mutations; the existing plain `deleteCard` mutation becomes the only card-removal path), `retro.ts` (remove `Card.archivedAt`, `Card.originColumnId`, `Board.archivedCards` fields).
-- **Priority:** P0 (cleanup)
-- **Dependencies:** F-22 must remain intact and cover card delete.
-- **Acceptance criteria:**
-  - `ArchivedItemsPanel.tsx` is deleted.
-  - `archiveCard`, `unarchiveCard`, `deleteCardForever` store mutations are removed.
-  - `Card.archivedAt`, `Card.originColumnId`, `Board.archivedCards` are removed from their types.
-  - Card kebab menu shows Delete (not Archive). Clicking Delete shows the F-22 undo toast for 6 seconds.
-  - Card details modal sidebar shows Delete (not Archive); same undo toast.
-  - Board settings menu has no Archived items entry.
-  - `SEED_BOARD` and all seed boards no longer include `archivedCards`.
-  - localStorage migration silently drops any persisted `archivedCards` arrays and `archivedAt`/`originColumnId` card fields.
-- **Out of scope:** Any soft-delete or trash feature.
-
----
-
 ### F-TYPE-RM — Type-gating cleanup + sidebar merge
 
 - **User story:** As a developer maintaining this codebase, I want the ~15 `board.type === "retro"` guard clauses removed so there is one product surface with no dead code paths.
@@ -222,8 +203,6 @@ These features are pure kanban-product additions with no role in a retro meeting
     - Drops `labels` from all boards and cards.
     - Drops `assigneeIds` from all cards.
     - Drops `dueDate` and `dueComplete` from all cards.
-    - Drops `archivedAt` and `originColumnId` from all cards.
-    - Drops `archivedCards` from all boards.
     - Renames `checklist` → `actionItems` on all cards.
     - Drops or ignores any board with `type === "kanban"` (retro boards are kept).
   - No user-visible data loss for the fields that are kept (`body`, `authorId`, `voters`, `description`, `actionItems`, board title/theme/state/starred).
@@ -245,7 +224,6 @@ Features in the first block were removed in the cleanup work above (Part 2). Fea
 | F-11 Card labels | Out — kanban-product feature, removed in v1 cleanup per audit 2026-05-01 |
 | F-12 Card members / assignees | Out — kanban-product feature, removed in v1 cleanup per audit 2026-05-01 |
 | F-13 Card comments | Out — kanban-product feature, removed in v1 cleanup per audit 2026-05-01 |
-| F-14 Card archive | Out — kanban-product feature, removed in v1 cleanup per audit 2026-05-01 |
 | F-15 Search and filter | Out — kanban-product feature, removed in v1 cleanup per audit 2026-05-01 |
 
 ### Deferred (were already cut; remain cut)
@@ -281,8 +259,7 @@ All shipped work (F-01 through F-22, except items amended above) is already done
 3. **F-12-RM** — members/assignees removal
 4. **F-11-RM** — labels removal (touches card preview, board model, and settings menu)
 5. **F-10-RM** — due date removal (touches card preview and card modal sidebar)
-6. **F-14-RM** — archive removal (touches store, `ArchivedItemsPanel`, and undo flow — verify F-22 undo still fires on plain delete)
-7. **F-TYPE-RM** — type-gating cleanup + sidebar merge (cross-cutting; do after component cleanup so there are no references to removed surfaces left to untangle)
-8. **F-09** — action-list rename + modal relabel + card-preview badge removal
-9. **F-23** — Finish Discussion → Action column (only net-new feature; builds directly on F-09)
-10. **F-MIGRATE** — localStorage schema bump + migration (final step, after all type and field changes are stable)
+6. **F-TYPE-RM** — type-gating cleanup + sidebar merge (cross-cutting; do after component cleanup so there are no references to removed surfaces left to untangle)
+7. **F-09** — action-list rename + modal relabel + card-preview badge removal
+8. **F-23** — Finish Discussion → Action column (only net-new feature; builds directly on F-09)
+9. **F-MIGRATE** — localStorage schema bump + migration (final step, after all type and field changes are stable)
