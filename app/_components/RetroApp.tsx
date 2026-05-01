@@ -29,7 +29,6 @@ import { ArchivedItemsPanel } from "./ArchivedItemsPanel";
 import {
   BoardSettingsMenu,
   EditThemeModal,
-  ManageLabelsModal,
 } from "./BoardSettingsMenu";
 import { Sidebar } from "./Sidebar";
 import { Avatar, Icon } from "./Primitives";
@@ -143,7 +142,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
   >(null);
   // F-17: board settings sub-surfaces.
   const [editThemeOpen, setEditThemeOpen] = useState(false);
-  const [manageLabelsOpen, setManageLabelsOpen] = useState(false);
   const [confirmArchiveBoard, setConfirmArchiveBoard] = useState(false);
   const router = useRouter();
   const anonInitialized = useRef(false);
@@ -697,7 +695,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
         <CardView
           card={card}
           users={USERS}
-          labels={board.labels}
           anonymous={anonymous}
           isTopVoted={false}
           isNew={false}
@@ -716,7 +713,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
       <ColumnView
         col={col}
         users={USERS}
-        labels={board.labels}
         anonymous={anonymous}
         focused={false}
         sortByVotes={false}
@@ -832,7 +828,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
                 board={board}
                 isOwner={isOwner}
                 onEditTheme={() => setEditThemeOpen(true)}
-                onManageLabels={() => setManageLabelsOpen(true)}
                 onOpenArchive={() => setArchivePanelOpen(true)}
                 onArchiveBoard={() => setConfirmArchiveBoard(true)}
                 onReopenBoard={reopenBoard}
@@ -959,7 +954,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
                     key={col.id}
                     col={col}
                     users={USERS}
-                    labels={board.labels}
                     anonymous={anonymous}
                     focused={discussion && col.id === focusColId}
                     sortByVotes={discussion && col.id === focusColId}
@@ -1050,8 +1044,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
           card={openCard}
           users={USERS}
           boardId={board.id}
-          labels={board.labels}
-          canEdit={isOwner}
           isRetro={board.type === "retro"}
           anonymous={anonymous}
           readOnly={closed}
@@ -1120,14 +1112,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
         initialValue={board.theme}
         onCancel={() => setEditThemeOpen(false)}
         onSave={saveTheme}
-      />
-
-      {/* F-17 manage labels modal — reuses LabelPicker in management mode */}
-      <ManageLabelsModal
-        open={manageLabelsOpen}
-        boardId={board.id}
-        labels={board.labels}
-        onClose={() => setManageLabelsOpen(false)}
       />
 
       {/* F-17 archive-board confirm */}

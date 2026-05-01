@@ -7,9 +7,8 @@ import type {
   Card,
   ChecklistItem,
   Column,
-  Label,
 } from "./retro";
-import { BOARD_COLORS, SEED_BOARD, SEED_BOARDS, defaultLabels } from "./retro";
+import { BOARD_COLORS, SEED_BOARD, SEED_BOARDS } from "./retro";
 
 // Bump when the persisted shape changes in a way that needs migration.
 export const SCHEMA_VERSION = 1;
@@ -101,9 +100,6 @@ function writeNow() {
 // hydrate so boards in old localStorage payloads pick up new defaults.
 function migrateBoard(b: Board): Board {
   let next: Board = b;
-  if (!Array.isArray(next.labels)) {
-    next = { ...next, labels: defaultLabels() };
-  }
   // F-14: bucket out cards already flagged with archivedAt into the new
   // board-level archivedCards array so column iteration code never has to
   // skip them. Self-heals payloads written before F-14 landed.
@@ -255,7 +251,6 @@ export const storeActions = {
       starred: false,
       color,
       columns: defaultColumnsFor(input.type),
-      labels: defaultLabels(),
       archivedCards: [],
     };
     const prevState = state;
@@ -548,68 +543,6 @@ export const storeActions = {
         }),
       };
     });
-  },
-
-  // --- Labels (F-11) ------------------------------------------------------
-
-  addLabel(boardId: string, name: string, color: string): string {
-    const id = "lbl-" + Date.now().toString(36);
-    const label: Label = { id, name: name.trim(), color };
-    updateBoardById(boardId, (b) => ({ ...b, labels: [...b.labels, label] }));
-    return id;
-  },
-
-  updateLabel(boardId: string, labelId: string, patch: Partial<Omit<Label, "id">>) {
-    updateBoardById(boardId, (b) => ({
-      ...b,
-      labels: b.labels.map((l) =>
-        l.id === labelId
-          ? {
-              ...l,
-              ...patch,
-              // Trim a name patch the same way addLabel does so storage stays clean.
-              ...(patch.name !== undefined ? { name: patch.name.trim() } : {}),
-            }
-          : l,
-      ),
-    }));
-  },
-
-  // Drops the label and sweeps every card.labels array on the board so we
-  // never leave dangling label ids behind. Render code also defensively
-  // filters unknown ids, but cleaning at the source keeps storage tidy.
-  deleteLabel(boardId: string, labelId: string) {
-    updateBoardById(boardId, (b) => ({
-      ...b,
-      labels: b.labels.filter((l) => l.id !== labelId),
-      columns: b.columns.map((c) => ({
-        ...c,
-        cards: c.cards.map((card) =>
-          card.labels && card.labels.includes(labelId)
-            ? { ...card, labels: card.labels.filter((id) => id !== labelId) }
-            : card,
-        ),
-      })),
-    }));
-  },
-
-  toggleCardLabel(boardId: string, cardId: string, labelId: string) {
-    updateBoardById(boardId, (b) => ({
-      ...b,
-      columns: b.columns.map((c) => ({
-        ...c,
-        cards: c.cards.map((card) => {
-          if (card.id !== cardId) return card;
-          const current = card.labels ?? [];
-          const has = current.includes(labelId);
-          const next = has
-            ? current.filter((id) => id !== labelId)
-            : [...current, labelId];
-          // Drop the field entirely when empty so persisted shape stays minimal.
-          return { ...card, labels: next.length ? next : undefined };
-        }),
-      })),
-    }));
   },
 
   // --- Due date (F-10) ----------------------------------------------------

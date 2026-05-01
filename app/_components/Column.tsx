@@ -9,7 +9,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Card } from "./Card";
 import { Icon } from "./Primitives";
-import type { Column as ColumnType, Label, User } from "../_data/retro";
+import type { Column as ColumnType, User } from "../_data/retro";
 import { useAddCardRequest } from "../_hooks/useAddCardRequest";
 
 const MAX_TITLE = 60;
@@ -17,8 +17,6 @@ const MAX_TITLE = 60;
 export type ColumnProps = {
   col: ColumnType;
   users: User[];
-  /** Board-level label set used to render label stripes on each card preview. */
-  labels: Label[];
   anonymous: boolean;
   focused: boolean;
   sortByVotes: boolean;
@@ -91,7 +89,6 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
     {
       col,
       users,
-      labels,
       anonymous,
       focused,
       sortByVotes,
@@ -396,7 +393,6 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
                   key={c.id}
                   card={c}
                   users={users}
-                  labels={labels}
                   anonymous={anonymous}
                   isTopVoted={focused && sortByVotes && c.id === topId}
                   isNew={newIds.has(c.id)}

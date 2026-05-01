@@ -11,7 +11,6 @@
 
 import { useEffect, useRef } from "react";
 import { Icon } from "./Primitives";
-import { LabelStripes } from "./Labels";
 import { formatRelativeTime } from "../_lib/relativeTime";
 import type { Board, Card } from "../_data/retro";
 
@@ -144,7 +143,6 @@ function ArchiveRow({
   const time = card.archivedAt ? formatRelativeTime(card.archivedAt) : "";
   return (
     <div className="archive-row">
-      <LabelStripes labels={board.labels} cardLabelIds={card.labels} />
       <div className="archive-row-title" title={card.body}>
         {card.body}
       </div>

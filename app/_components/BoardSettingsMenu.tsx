@@ -9,15 +9,13 @@
 // per the F-17 spec §3.
 
 import { useEffect, useRef, useState } from "react";
-import { LabelPicker } from "./Labels";
-import type { Board, Label } from "../_data/retro";
+import type { Board } from "../_data/retro";
 
 type BoardSettingsMenuProps = {
   board: Board;
   /** v1: always true via useIsOwner; the trigger is hidden entirely otherwise. */
   isOwner: boolean;
   onEditTheme: () => void;
-  onManageLabels: () => void;
   onOpenArchive: () => void;
   onArchiveBoard: () => void;
   onReopenBoard: () => void;
@@ -32,7 +30,6 @@ export function BoardSettingsMenu({
   board,
   isOwner,
   onEditTheme,
-  onManageLabels,
   onOpenArchive,
   onArchiveBoard,
   onReopenBoard,
@@ -69,7 +66,6 @@ export function BoardSettingsMenu({
 
   // Section visibility per spec §3 / §8.
   const showEditTheme = isRetro && !closed && !archived;
-  const showManageLabels = !closed && !archived;
   const showArchiveBoard = !archived;
   const showReopen = closed && !archived;
   const showUnarchive = archived;
@@ -113,16 +109,6 @@ export function BoardSettingsMenu({
               onClick={click(onEditTheme)}
             >
               Edit theme prompt
-            </button>
-          )}
-          {showManageLabels && (
-            <button
-              type="button"
-              className="menu-item"
-              role="menuitem"
-              onClick={click(onManageLabels)}
-            >
-              Manage labels
             </button>
           )}
           {showExports && (
@@ -311,80 +297,3 @@ export function EditThemeModal({
   );
 }
 
-// ---------------------------------------------------------------------------
-// ManageLabelsModal — wraps LabelPicker in management mode
-// ---------------------------------------------------------------------------
-
-type ManageLabelsModalProps = {
-  open: boolean;
-  boardId: string;
-  labels: Label[];
-  onClose: () => void;
-};
-
-export function ManageLabelsModal({
-  open,
-  boardId,
-  labels,
-  onClose,
-}: ManageLabelsModalProps) {
-  const pointerStartedOnOverlay = useRef(false);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
-
-  const onOverlayPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    pointerStartedOnOverlay.current = e.target === e.currentTarget;
-  };
-  const onPanelPointerDown = () => {
-    pointerStartedOnOverlay.current = false;
-  };
-  const onOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target !== e.currentTarget) return;
-    if (!pointerStartedOnOverlay.current) return;
-    pointerStartedOnOverlay.current = false;
-    onClose();
-  };
-
-  return (
-    <div
-      className={"modal-overlay" + (open ? " open" : "")}
-      onPointerDown={onOverlayPointerDown}
-      onClick={onOverlayClick}
-      aria-hidden={!open}
-    >
-      <div
-        className="modal modal-manage-labels"
-        onPointerDown={onPanelPointerDown}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Manage labels"
-      >
-        <h2>Manage labels</h2>
-        <LabelPicker
-          boardId={boardId}
-          cardId=""
-          labels={labels}
-          cardLabelIds={[]}
-          readOnly={false}
-          canEdit
-          manageOnly
-        />
-        <div className="modal-actions">
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
-            Done
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}

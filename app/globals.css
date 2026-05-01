@@ -499,7 +499,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 
 /* ---------- card details modal (F-07 shell) ----------
    Slot wrappers (.cd-description, .cd-checklist,
-   .cd-side-due, .cd-side-labels, .cd-side-archive)
+   .cd-side-due, .cd-side-archive)
    are owned by F-08–F-14. F-07 only ships their layout/spacing. */
 .modal.modal-card-details {
   position: relative;
@@ -540,7 +540,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 
 .cd-description, .cd-checklist { margin-bottom: 18px; }
 .cd-main > section:last-child { margin-bottom: 0; }
-.cd-side-due, .cd-side-labels, .cd-side-archive {
+.cd-side-due, .cd-side-archive {
   margin-bottom: 14px;
 }
 .cd-side > section:last-child { margin-bottom: 0; }
@@ -862,166 +862,6 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   font-family: var(--font-mono); font-size: 10px;
 }
 .card-checklist-indicator.complete { color: var(--status-emerald); }
-
-/* ---------- card labels (F-11) ---------- */
-/* Stripes on the card preview — sit between the top-voted flag and the body. */
-.label-stripes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 8px;
-  align-items: center;
-}
-.label-stripe {
-  width: 28px; height: 4px;
-  border-radius: 2px;
-  display: inline-block;
-}
-.label-stripes-more {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--fg4);
-}
-
-/* Picker — slotted into .cd-side-labels in the card details modal. */
-.label-picker {
-  display: flex; flex-direction: column;
-  gap: 2px;
-}
-.label-empty {
-  margin: 0 0 6px;
-  font-size: 12px; font-style: italic;
-  color: var(--fg4);
-}
-
-.label-row {
-  display: flex; align-items: center;
-  gap: 8px;
-  padding: 4px 6px;
-  border-radius: 4px;
-  cursor: pointer;
-  min-height: 26px;
-  transition: background 120ms ease;
-}
-.label-row:hover { background: var(--surface-02); }
-.label-row.editing { background: var(--surface-02); cursor: default; }
-.label-row.confirming { background: var(--surface-04); cursor: default; }
-
-.label-checkbox {
-  width: 14px; height: 14px;
-  margin: 0;
-  accent-color: var(--brand-indigo);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.label-checkbox:disabled { cursor: not-allowed; opacity: 0.5; }
-
-.label-swatch {
-  width: 16px; height: 16px;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-
-.label-name {
-  flex: 1;
-  min-width: 0;
-  font-size: 12px;
-  color: var(--fg2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.label-name.empty { color: var(--fg4); font-style: italic; }
-
-.label-name-input {
-  flex: 1;
-  min-width: 0;
-  background: var(--bg-surface); color: var(--fg1);
-  border: 1px solid var(--brand-indigo); border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 12px;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(94,106,210,0.15);
-}
-
-.label-actions {
-  display: flex; align-items: center; gap: 4px;
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-.label-row:hover .label-actions,
-.label-row:focus-within .label-actions { opacity: 1; }
-
-.label-delete-btn {
-  width: 18px; height: 18px;
-  border: 0; background: transparent;
-  color: var(--fg4);
-  font-size: 14px; line-height: 1;
-  border-radius: 3px;
-  cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: 0;
-}
-.label-delete-btn:hover { color: var(--danger); background: rgba(217,119,119,0.08); }
-
-.label-confirm-text {
-  flex: 1;
-  font-size: 12px;
-  color: var(--fg2);
-}
-.label-confirm-actions {
-  display: flex; gap: 4px;
-}
-.label-confirm-actions .btn-subtle { height: 22px; padding: 0 8px; font-size: 11px; }
-.label-confirm-yes { color: var(--danger); }
-
-.label-create {
-  margin-top: 4px;
-  width: 100%;
-  background: transparent; color: var(--fg3);
-  border: 1px dashed var(--border-1); border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 12px; font-weight: 510;
-  text-align: center;
-  cursor: pointer;
-  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
-}
-.label-create:hover {
-  color: var(--fg1);
-  border-color: var(--border-2);
-  background: var(--surface-02);
-}
-
-.label-create-form {
-  margin-top: 6px;
-  padding: 8px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 6px;
-  background: var(--surface-02);
-  display: flex; flex-direction: column;
-  gap: 8px;
-}
-.label-create-form .label-name-input { width: 100%; }
-.label-create-swatches {
-  display: flex; flex-wrap: wrap; gap: 6px;
-}
-.label-create-swatch {
-  width: 18px; height: 18px;
-  border-radius: 4px;
-  border: 1px solid transparent;
-  padding: 0;
-  cursor: pointer;
-  outline: 1px solid transparent;
-  outline-offset: 1px;
-  transition: outline-color 120ms ease;
-}
-.label-create-swatch[data-selected="true"] {
-  outline-color: var(--brand-indigo);
-}
-.label-create-actions {
-  display: flex; gap: 6px; justify-content: flex-end;
-}
-.label-create-actions .btn { height: 26px; padding: 0 10px; font-size: 12px; }
 
 /* ---------- card due date (F-10) ---------- */
 /* Pill — sits inside `.card-foot > .vote-row`, left of the description
@@ -1709,10 +1549,6 @@ textarea.field-input {
   font-family: inherit;
   margin-bottom: 14px;
 }
-
-/* Manage labels modal — modal width is fine at the .modal default; the
-   single-rule below switches the picker to management mode. */
-.label-picker.manage-only .label-checkbox { display: none; }
 
 /* F-19 keyboard shortcuts cheat-sheet. Reuses .modal / .modal-overlay /
    .kbd; the rules below only own the cheat-sheet's internal layout. */
