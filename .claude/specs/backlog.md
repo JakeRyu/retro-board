@@ -1,429 +1,288 @@
-# Retro Board — v1 Backlog
+# Retro Board — v1 Backlog (revised)
 
 > Owner: Product Owner agent
-> Date: 2026-04-29
+> Date: 2026-05-01
 > Scope: Frontend-only v1. State persisted to `localStorage` until backend lands.
-> Source-of-truth read: HANDOVER.md, AGENTS.md, app/_data/retro.ts, app/_components/*.
+> Audit source: approved audit 2026-05-01 (per-feature dispositions used throughout).
 
 ---
 
-## Rationale & vision shift
+## Vision correction
 
-The current product is a **single hi-fi retro board** that lives at the app root. The user has asked us to take it from "one nicely-painted board" to "a working kanban product with retros as a first-class mode." That requires three big shifts:
-
-1. **From one board to many.** A boards list page becomes the home. The current single-board surface becomes `/boards/[id]`. Sidebar's "Retros" list becomes a real navigation.
-2. **From retro-only to dual-purpose.** Cards gain Trello-style depth (description, comments, checklist, due date, labels, members). Retros keep their voting/anonymous/discussion behaviors as a *mode* on top of the kanban surface — not a replacement for it. Retro UX must not regress.
-3. **Persistence without backend.** All multi-board, multi-card state moves to `localStorage`. Realtime, presence, members-as-real-users, and sharing are deferred to v2 when a backend exists.
-
-### Tradeoffs taken
-- **Cut hard on Trello bloat.** No attachments, no cover images, no board backgrounds, no power-ups, no email-to-board, no copy-board, no templates marketplace. These are <1×/session features.
-- **Drag-and-drop is P0.** A kanban without DnD is not a kanban. This blocks most other card features.
-- **Members are local stubs.** "Assigned to" picks from the seeded USERS list; invitations are deferred. Same for presence.
-- **Discussion mode and voting stay retro-only.** They're hidden on non-retro boards — surfaced via a board-type flag chosen at creation.
-- **Search is per-board, not cross-workspace.** Cross-board search needs a real index; not worth it for localStorage v1.
-
-### Assumptions (flagged so they can be challenged)
-- **Most users will create <20 boards.** localStorage cap (~5MB) is fine.
-- **Single user per browser.** No multi-user merging needed in v1; "members" are decorative until backend.
-- **A board has exactly one type — kanban OR retro — chosen at creation.** Switching type later is out of scope.
+The previous version of this backlog reframed the product as "a working kanban product with retros as a first-class mode" and shipped F-01 through F-22 along that frame — adding Trello-like surfaces (comments, labels, due dates, members, archive, search/filter) that have no role in a retrospective meeting. That framing was wrong. The product is, and always was, a **retro board**. The kanban-like structure — columns, cards, drag-and-drop — is the mechanism that makes retros feel tactile and collaborative; it is not a product surface to build out. This backlog corrects course: it removes the kanban-only features via explicit cleanup work, reframes the checklist as an action-item list, and introduces F-23 to close the action-items loop.
 
 ---
 
-## Backlog
+## Part 1 — Shipped features (KEEP / KEEP-AS-MECHANIC)
 
-### F-01 — Multi-board data model + localStorage persistence
+The following features shipped in F-01 through F-22 and are **accepted as-is** under the retro-only lens. No further work required except where noted in Part 2 (cleanup) or Part 3 (new work).
 
-- **User story:** As a user, I want my boards and their contents to survive a page refresh, so that the app feels like a real tool and not a demo.
-- **Why in scope:** Every other feature in this backlog needs more than one board and needs state to persist. This is the foundation.
+| F | Feature | Status |
+|---|---|---|
+| F-01 | Multi-board data model + localStorage persistence | Keep. `Board.type` collapses to constant once kanban seed data is removed (Part 2). |
+| F-02 | Boards list page | Keep, reframed as **Retros list**. Drop type badge, drop Kanban grouping, rename "Boards" → "Retros" in sidebar and page heading. |
+| F-03 | Create-board dialog | Keep, reframed as **Create retro**. Drop type segmented control; retro is the only type. Drop kanban default columns. |
+| F-04 | Per-board routing | Keep. Optional route rename `/boards/[id]` → `/retros/[id]` deferred to backend integration. |
+| F-05 | Column CRUD | Keep as mechanic. Facilitator may add or rename a prompt column. |
+| F-06 | Drag-and-drop (reduced) | Keep card-DnD within and between columns. **Drop**: column-reorder drag, `Ctrl/Cmd+Arrow` keyboard DnD for columns. |
+| F-07 | Card details modal (minimal) | Keep. Holds: title (edit) + voters + description + action list only. All other sections removed in Part 2. |
+| F-08 | Card description | Keep. Drop description-icon indicator on card preview (visual noise). |
+| F-16 | Empty states | Keep. Remove "Empty filter result" copy when F-15 filter UI is deleted. |
+| F-17 | Board settings menu (slimmed) | Keep for: edit theme prompt, archive retro, reopen. **Drop**: Manage labels entry, Archived items entry. |
+| F-18 | Star / favorite | Keep. Teams pin their recurring retro. |
+| F-19 | Keyboard shortcuts (trimmed) | Keep `c`, `b`, `?`, discussion-mode arrows. **Drop** `/` (filter shortcut goes with F-15). Update cheat-sheet. |
+| F-20 | Action items export | Keep. Input changes: now exports the auto-built **Action** column produced by F-23, not a hardcoded rightmost column. |
+| F-21 | Realtime affordances | Keep. |
+| F-22 | Undo on destructive actions | Keep. More critical once F-14 archive is gone — card delete is now permanent, so undo toast is the only safety net. |
+
+---
+
+## Part 2 — Cleanup (REMOVE)
+
+These features are pure kanban-product additions with no role in a retro meeting. They must be **deleted** — not hidden, not feature-flagged — because their data fields and store mutations accumulate technical debt in every future retro feature. Each cleanup item ships as part of v1. The acceptance criteria describe the end state after cleanup.
+
+---
+
+### F-15-RM — Remove search and filter
+
+- **User story:** As a retro participant, I want a focused board UI without a filter bar I will never use, so the retro surface stays clean.
+- **Why removing serves the user:** Retros have 20–50 cards at most; with labels, members, and due dates gone, the filter has no dimensions. The topbar Filter button is dead weight.
+- **Files touched:** `FilterPopover.tsx` (delete), `cardMatchesFilter.ts` (delete), `RetroApp.tsx` (remove Filter button and filter state wiring), `KeyboardShortcuts.tsx` or equivalent (remove `/` shortcut binding).
+- **Priority:** P0 (cleanup)
+- **Acceptance criteria:**
+  - `FilterPopover.tsx` and `cardMatchesFilter.ts` are deleted.
+  - No Filter button appears in the topbar.
+  - The `/` keyboard shortcut no longer triggers a filter popover.
+  - The cheat-sheet modal does not list `/`.
+  - All cards in all columns are always visible (no filter state remains in the component or store).
+  - No TypeScript errors introduced.
+- **Out of scope:** Replacing filter with any other search mechanism.
+
+---
+
+### F-13-RM — Remove card comments
+
+- **User story:** As a retro participant, I want discussion to happen in the room (via discussion mode), not in an async comment thread that nobody reads.
+- **Why removing serves the user:** Discussion mode is the conversation surface. Comment threads are a kanban-async pattern that contradicts the synchronous retro meeting format.
+- **Files touched:** `Comments.tsx` (delete), `CardDetailsModal.tsx` (remove comments section and `comments` prop wiring), `store.ts` (remove `addComment`, `editComment`, `deleteComment` mutations — verify exact names), `retro.ts` (remove `Comment` type and `Card.comments` field).
+- **Priority:** P0 (cleanup)
+- **Acceptance criteria:**
+  - `Comments.tsx` is deleted.
+  - `Comment` type is removed from `retro.ts`.
+  - `Card.comments` field is removed from the `Card` type.
+  - All comment-related store mutations are removed.
+  - Card details modal contains no comments section, no comment count, no comment composer.
+  - Card preview shows no comment count badge.
+  - localStorage migration (Part 2 final step) silently drops any persisted `comments` arrays.
+- **Out of scope:** Any replacement async discussion mechanism.
+
+---
+
+### F-12-RM — Remove card members (assignees)
+
+- **User story:** As a retro participant, I want voter avatars to be the only participation signal on a sticky, so the card stays readable and focused on the idea.
+- **Why removing serves the user:** Assignment is a task-ownership pattern. In a retro, the card represents a shared observation, not a task. Voter avatars already show who resonated with it.
+- **Files touched:** `Members.tsx` (delete), `CardDetailsModal.tsx` (remove members section), `store.ts` (remove `toggleCardAssignee` mutation), `retro.ts` (remove `Card.assigneeIds` field), `Card.tsx` (remove assignee avatar stack on card preview).
+- **Priority:** P0 (cleanup)
+- **Acceptance criteria:**
+  - `Members.tsx` is deleted.
+  - `Card.assigneeIds` is removed from the `Card` type.
+  - `toggleCardAssignee` is removed from the store.
+  - Card preview renders no assignee avatars.
+  - Card details modal contains no members/assignee picker.
+  - localStorage migration silently drops any persisted `assigneeIds` values.
+- **Out of scope:** Any future facilitator-assignment feature (deferred, requires design).
+
+---
+
+### F-11-RM — Remove card labels
+
+- **User story:** As a retro participant, I want to categorize my stickies by which column I place them in — not by a label system I have to configure — so setup friction stays near zero.
+- **Why removing serves the user:** The column prompt is the category. Labels duplicate that signal while adding configuration overhead. User-confirmed removal.
+- **Files touched:** `Labels.tsx` (delete), `CardDetailsModal.tsx` (remove labels section), `BoardSettingsMenu.tsx` (remove Manage labels entry), `store.ts` (remove `addLabel`, `updateLabel`, `deleteLabel`, `toggleCardLabel` mutations), `retro.ts` (remove `Label` type, `Card.labels` field, `Board.labels` field, `defaultLabels()` function, `BOARD_COLOR_NAMES` constant), `Card.tsx` (remove label color stripes on card preview).
+- **Priority:** P0 (cleanup)
+- **Acceptance criteria:**
+  - `Labels.tsx` is deleted.
+  - `Label` type, `defaultLabels()`, `BOARD_COLOR_NAMES` are removed from `retro.ts`.
+  - `Card.labels` and `Board.labels` are removed from their respective types.
+  - All label store mutations are removed.
+  - Card preview shows no label stripes.
+  - Board settings menu has no Manage labels entry.
+  - `SEED_BOARD` and all other seed boards no longer include a `labels` field.
+  - localStorage migration silently drops any persisted `labels` arrays on boards and cards.
+- **Out of scope:** Any future tagging or theming system.
+
+---
+
+### F-10-RM — Remove card due date
+
+- **User story:** As a retro participant, I want stickies to capture observations in the moment — not carry scheduling baggage — so the board stays lightweight.
+- **Why removing serves the user:** Stickies in a retro meeting are observations, not tasks with deadlines.
+- **Files touched:** `DueDate.tsx` (delete), `dueDateStatus.ts` (delete), `CardDetailsModal.tsx` (remove due date section from sidebar), `store.ts` (remove `setCardDueDate`, `toggleCardDueComplete` mutations), `retro.ts` (remove `Card.dueDate` and `Card.dueComplete` fields), `Card.tsx` (remove due-date pill on card preview).
+- **Priority:** P0 (cleanup)
+- **Acceptance criteria:**
+  - `DueDate.tsx` and `dueDateStatus.ts` are deleted.
+  - `Card.dueDate` and `Card.dueComplete` are removed from the `Card` type.
+  - Both store mutations are removed.
+  - Card preview shows no due-date pill.
+  - Card details modal sidebar contains no due-date picker or complete toggle.
+  - localStorage migration silently drops any persisted `dueDate`/`dueComplete` values.
+- **Out of scope:** Sprint-deadline tracking (separate product concern).
+
+---
+
+### F-14-RM — Remove card archive
+
+- **User story:** As a retro participant, I want to delete a sticky and have a brief undo window (F-22) as my safety net, without needing a separate archive system that accumulates deleted cards indefinitely.
+- **Why removing serves the user:** Archive-then-revisit is kanban hygiene. In a retro, a card you no longer want is just deleted. F-22 undo (6-second toast) already covers accidental deletes. The archive panel adds surface area and data complexity with no retro-meeting payoff.
+- **Files touched:** `ArchivedItemsPanel.tsx` (delete), `CardDetailsModal.tsx` (remove Archive action from sidebar, replace with Delete; verify Delete triggers F-22 undo toast), `BoardSettingsMenu.tsx` (remove Archived items entry), `store.ts` (remove `archiveCard`, `unarchiveCard`, `deleteCardForever` mutations; the existing plain `deleteCard` mutation becomes the only card-removal path), `retro.ts` (remove `Card.archivedAt`, `Card.originColumnId`, `Board.archivedCards` fields).
+- **Priority:** P0 (cleanup)
+- **Dependencies:** F-22 must remain intact and cover card delete.
+- **Acceptance criteria:**
+  - `ArchivedItemsPanel.tsx` is deleted.
+  - `archiveCard`, `unarchiveCard`, `deleteCardForever` store mutations are removed.
+  - `Card.archivedAt`, `Card.originColumnId`, `Board.archivedCards` are removed from their types.
+  - Card kebab menu shows Delete (not Archive). Clicking Delete shows the F-22 undo toast for 6 seconds.
+  - Card details modal sidebar shows Delete (not Archive); same undo toast.
+  - Board settings menu has no Archived items entry.
+  - `SEED_BOARD` and all seed boards no longer include `archivedCards`.
+  - localStorage migration silently drops any persisted `archivedCards` arrays and `archivedAt`/`originColumnId` card fields.
+- **Out of scope:** Any soft-delete or trash feature.
+
+---
+
+### F-TYPE-RM — Type-gating cleanup + sidebar merge
+
+- **User story:** As a developer maintaining this codebase, I want the ~15 `board.type === "retro"` guard clauses removed so there is one product surface with no dead code paths.
+- **Why removing serves the product:** With kanban gone, every `board.type === "retro"` check is always true — dead code. The sidebar's separate "Boards" and "Retros" sections collapse into one "Retros" list.
+- **Files touched:** `RetroApp.tsx` (remove all `board.type` conditional branches), `Sidebar.tsx` (merge Boards/Retros sections into single Retros list), `retro.ts` (remove `BoardType` union type; `Board.type` field becomes `"retro"` constant or is removed), `store.ts` (remove `type` from `CreateBoardInput`; `defaultColumnsFor()` always returns retro columns), seed boards (`SEED_BOARD_KANBAN` removed from `SEED_BOARDS`).
+- **Priority:** P0 (cleanup)
+- **Acceptance criteria:**
+  - No `board.type === "retro"` (or `=== "kanban"`) comparisons remain in the codebase.
+  - `BoardType` union is removed; `Board.type` is either a literal `"retro"` or absent.
+  - `SEED_BOARD_KANBAN` is removed from `SEED_BOARDS`; the retro seed boards remain.
+  - Sidebar shows a single "Retros" section. No "Boards" section.
+  - Create dialog has no type selector; always creates a retro with the retro default columns.
+  - No TypeScript errors introduced.
+- **Out of scope:** Migrating existing kanban boards in localStorage (they will simply be ignored on next hydrate; migration step below handles the schema bump).
+
+---
+
+## Part 3 — New work
+
+### F-09 — Action list (repurposed from checklist)
+
+- **User story:** As a retro facilitator, I want to capture action items directly on the sticky being discussed, so commitments are tied to the observation that prompted them.
+- **Why in scope:** The per-card checklist (shipped as F-09) is the right structural home — a list of text items attached to a card — but its meaning was wrong for a retro. Reframed as "Action items" captured during discussion mode, it becomes the raw material for F-23.
 - **Priority:** P0
-- **Dependencies:** none
+- **Dependencies:** F-07 (card details modal, already shipped but slimmed by cleanup above)
 - **Acceptance criteria:**
-  - Data model expands `Board` to include `id`, `type: "kanban" | "retro"`, `createdAt`, `updatedAt`, `archivedAt?`, `starred: boolean`, and owns its own `columns: Column[]`.
-  - `Card` type expands with optional `description`, `comments[]`, `checklist[]`, `dueDate?`, `labels[]`, `assigneeIds[]`, `archivedAt?`. (Existing retro fields `voters`, `authorId` stay.)
-  - All reads/writes go through a single store module (e.g. `app/_data/store.ts`) that hydrates from `localStorage` on mount and writes through on every mutation (debounced 300ms).
-  - Seed data (current `COLUMNS` + `BOARD`) is inserted on first launch only.
-  - Schema version stamp is stored so future migrations are possible.
-  - `Board` includes a stable seeded `color` field used by the sidebar swatch and the boards-list theme stripe; not user-editable in v1.
-  - `updatedAt` is bumped on any mutation within the board's tree: card add/edit/delete/archive/move, column add/rename/delete/reorder, board title/theme edit, label CRUD, retro vote toggle.
-- **Out of scope for v1:** server sync, conflict resolution, real users.
-- **Backend follow-up:** swap `localStorage` driver for an API client; same store interface.
+  - The checklist section in the card details modal is relabeled "Action items." The add-item input placeholder reads "Add an action item…".
+  - `ChecklistItem` type is renamed `ActionItem`; `Card.checklist` field is renamed `Card.actionItems`. Store mutations are renamed accordingly (`addActionItem`, `toggleActionItem`, `editActionItem`, `deleteActionItem`).
+  - The per-card checklist progress badge on the card preview is removed (progress surfaces in the Action column, not on individual stickies).
+  - The "Hide completed" toggle inside the modal is removed — action items in a retro context are not "completed" during the meeting itself; they flow to F-23.
+  - In discussion mode, the action-items section in the card modal is highlighted or otherwise visually signaled as "the place to capture what this discussion produces."
+  - `Checklist.tsx` is renamed `ActionList.tsx` (or equivalent); old name is removed.
+  - localStorage migration renames `checklist` → `actionItems` on every card without data loss.
+- **Out of scope for v1:** Per-item assignment to a team member, per-item due dates, multiple action lists per card.
+- **Backend follow-up:** Action items will become first-class entities with assignee and due date once a backend exists.
 
 ---
 
-### F-02 — Boards list page (home)
+### F-23 — Finish Discussion → Action column
 
-- **User story:** As a user landing on the app, I want to see all my boards at a glance so I can jump into the one I need.
-- **Why in scope:** The user explicitly asked for it. Without it, multi-board has no entry point.
+- **User story:** As a retro facilitator, when I finish the discussion I want all the action items the team captured to appear automatically in an Action column, so nothing is lost and the team can see their commitments at a glance before we close.
+- **Why in scope:** This closes the retro loop. The meeting produces observations (sticky columns) and commitments (action items). Without this feature, action items live buried inside card modals and are invisible to the team at the end of the meeting.
 - **Priority:** P0
-- **Dependencies:** F-01
+- **Dependencies:** F-09 (action list on cards), F-20 (export reads from the Action column)
 - **Acceptance criteria:**
-  - Route `/` renders the boards list. The current board view moves to `/boards/[id]`.
-  - Each board card shows: title, type badge (Kanban / Retro), card count, last-updated relative time, starred indicator, closed/archived state.
-  - Boards are grouped: "Starred" → "Open" → "Closed" → "Archived" (Archived collapsed by default).
-  - Clicking a board navigates to its detail page.
-  - Empty state: "No boards yet. Create one to get started." with primary CTA.
-  - Sidebar "Boards" item links here; sidebar "Retros" list filters to retro-type boards.
-  - Board card kebab menu in F-02 ships with only `Star`/`Unstar` and `Open in new tab`; archive/reopen/unarchive entries land with their owning features (F-17/F-18).
-- **Out of scope for v1:** team/workspace switching, board sharing UI.
+  - When the facilitator clicks "Finish discussion," the app creates (or replaces) a column titled "Action" at the rightmost position on the board.
+  - Every action-list item from every card across all columns is gathered and each becomes its own card in the Action column. Order: by source column position, then by card vote count (desc) within each column, then by item order within the card.
+  - Each Action card body is the action-item text. The card carries a back-pointer (stored in a new `sourceCardId` field) identifying the sticky it came from. The UI surface of that back-pointer (tooltip, small label, etc.) is a design decision — the PO only requires it to be present and accessible.
+  - If the team re-enters discussion mode and clicks Finish discussion again, the Action column is rebuilt: existing Action column cards are replaced, not appended. A confirm prompt ("Rebuild Action column? This will replace the current action items.") is shown if the Action column already contains cards.
+  - F-20 "Copy action items" exports the Action column. No behavior change to F-20 itself — it already targets the rightmost column.
+  - If no action items were captured on any card, "Finish discussion" creates an empty Action column with the empty-state copy "No action items were captured." A toast informs the facilitator.
+  - Discussion mode keyboard navigation (←/→/Esc) is not affected.
+  - The Action column respects the read-only state when the board is closed.
+- **Out of scope for v1:** Editing action items directly in the Action column and having those edits sync back to the source card's action list (one-way flow only). Ordering the Action column by priority. Timer or time-boxing per action item.
+- **Backend follow-up:** Action items and Action column cards become persistent entities with assignee, due date, and status once a backend exists. F-20 export could integrate with Linear/Jira at that point.
 
 ---
 
-### F-03 — Create-board dialog
+### F-MIGRATE — localStorage schema bump + migration
 
-- **User story:** As a user, I want to create a new board by giving it a name and picking its type, so I can start working immediately.
-- **Why in scope:** The user explicitly asked for it. Required for F-02 to have any boards beyond seed.
+- **User story:** As a returning user, I want my existing retro data to load correctly after the v1 cleanup ships, so I don't lose boards or cards I created before.
+- **Why in scope:** The cleanup removes six data fields (`comments`, `labels` on boards and cards, `assigneeIds`, `dueDate`, `dueComplete`, `archivedAt`, `originColumnId`, `archivedCards`) and renames one (`checklist` → `actionItems`). Without a migration, stale localStorage will either crash or silently carry dead fields forever.
 - **Priority:** P0
-- **Dependencies:** F-01, F-02
+- **Dependencies:** All F-*-RM cleanup items, F-09 rename
 - **Acceptance criteria:**
-  - "Create board" CTA on boards list and a `+ Create board` row at the top of the sidebar `Boards` section both open the same modal dialog.
-  - Fields: title (required), type (Kanban / Retro, segmented control, default Kanban), retro-only theme prompt (visible only when Retro chosen), color (one of the 7 `BOARD_COLORS` swatches, default randomized at dialog-open).
-  - On submit: new board is created with default columns. Kanban default = `To do / In progress / Done`. Retro default = `What went well / What didn't / Try next time / Shout-outs`.
-  - Submit navigates to the new board's detail page.
-  - Esc / overlay click cancels and returns focus to the trigger that opened the dialog.
-  - Validation: title ≥ 1 char, ≤ 80 chars, trimmed.
-  - Storage-full write failure shows an inline error in the dialog and leaves the dialog open (no recovery link in v1).
-- **Out of scope for v1:** templates beyond the two defaults, importing from Trello, copying an existing board.
+  - `SCHEMA_VERSION` is bumped (e.g., `1` → `2`).
+  - On hydrate, if `schemaVersion < 2`, the migration function runs before the state is used:
+    - Drops `comments` from all cards.
+    - Drops `labels` from all boards and cards.
+    - Drops `assigneeIds` from all cards.
+    - Drops `dueDate` and `dueComplete` from all cards.
+    - Drops `archivedAt` and `originColumnId` from all cards.
+    - Drops `archivedCards` from all boards.
+    - Renames `checklist` → `actionItems` on all cards.
+    - Drops or ignores any board with `type === "kanban"` (retro boards are kept).
+  - No user-visible data loss for the fields that are kept (`body`, `authorId`, `voters`, `description`, `actionItems`, board title/theme/state/starred).
+  - Migration runs once; `schemaVersion` is written back immediately so it does not re-run.
+  - If localStorage is absent or malformed, seed state is used as normal (existing behavior).
+- **Out of scope for v1:** Surfacing a "Your data was migrated" notice to the user.
 
 ---
 
-### F-04 — Board routing + per-board view shell
+## Part 4 — REMOVED from v1 (full OUT list)
 
-- **User story:** As a user, I want each board to have its own URL so I can bookmark it, share it, and use the back button.
-- **Why in scope:** Required to move beyond the single-route prototype. Trivial code-wise but unblocks F-02/F-03.
-- **Priority:** P0
-- **Dependencies:** F-01
-- **Acceptance criteria:**
-  - Route `/boards/[id]` renders the existing `RetroApp` surface for that board.
-  - Unknown id shows a "Board not found" state with link back to boards list.
-  - Title in topbar reflects the loaded board, not a constant.
-  - Browser back/forward works between list and board.
-- **Out of scope for v1:** deep links to specific cards.
+Features in the first block were removed in the cleanup work above (Part 2). Features in the second block were cut from the original backlog and remain cut.
 
----
+### Removed in v1 cleanup (audit 2026-05-01)
 
-### F-05 — Column CRUD (add, rename, delete)
+| Feature | Rationale |
+|---|---|
+| F-10 Card due date | Out — kanban-product feature, removed in v1 cleanup per audit 2026-05-01 |
+| F-11 Card labels | Out — kanban-product feature, removed in v1 cleanup per audit 2026-05-01 |
+| F-12 Card members / assignees | Out — kanban-product feature, removed in v1 cleanup per audit 2026-05-01 |
+| F-13 Card comments | Out — kanban-product feature, removed in v1 cleanup per audit 2026-05-01 |
+| F-14 Card archive | Out — kanban-product feature, removed in v1 cleanup per audit 2026-05-01 |
+| F-15 Search and filter | Out — kanban-product feature, removed in v1 cleanup per audit 2026-05-01 |
 
-- **User story:** As a board owner, I want to add, rename, and delete columns so I can shape the board to my workflow.
-- **Why in scope:** HANDOVER.md §5 calls this out as missing. The "Add column" button already exists but is non-functional; column kebab is a placeholder.
-- **Priority:** P0
-- **Dependencies:** F-01
-- **Acceptance criteria:**
-  - Clicking "Add column" inserts a new column at the end and immediately puts its title into edit mode.
-  - Column header has a kebab menu with: Rename, Delete.
-  - Rename uses the same inline-edit pattern as the board title (Esc cancels, Enter/blur saves, ≤ 60 chars).
-  - Deleting an empty column requires no confirm. Deleting a non-empty column shows the confirm copy from HANDOVER §4.6: *"This column has N cards. Delete the column and all its cards?"*
-  - Owner-gated per HANDOVER §4.1. (For v1 with no real auth, "owner" = the local user; check still wired so backend swap is clean.)
-- **Out of scope for v1:** column reordering by drag (covered in F-06), column color coding.
-
----
-
-### F-06 — Drag-and-drop: cards within and between columns; column reorder
-
-- **User story:** As a user, I want to drag cards between columns and reorder them, because that is how kanban boards work.
-- **Why in scope:** Implied by "kanban." Without this the product is not a kanban board.
-- **Priority:** P0
-- **Dependencies:** F-01, F-05
-- **Acceptance criteria:**
-  - A card can be dragged within its column to reorder.
-  - A card can be dragged into another column; it lands at the drop position, not always at the end.
-  - During drag: source card shows a ghost/placeholder, drop targets highlight, autoscroll near board edges.
-  - A column can be dragged horizontally to reorder among other columns (drag handle is the column header).
-  - Keyboard accessibility: a focused card can be moved with `Ctrl/Cmd+Arrow` keys (up/down within column, left/right between columns); a focused column header can be moved with `Ctrl/Cmd+Shift+Arrow` left/right to reorder columns.
-  - Read-only state (closed board) disables DnD.
-  - In retro discussion mode, DnD is disabled (sort-by-votes wins) — facilitator reorder is deferred per HANDOVER §4.3.
-- **Out of scope for v1:** cross-board card move, multi-card drag, DnD on touch devices (mouse + keyboard only — touch deferred).
-
----
-
-### F-07 — Card details modal
-
-- **User story:** As a user, I want to click a card to open a richer view where I can add a description, checklist, comments, due date, labels, and assignees, so cards hold real work, not just a one-liner.
-- **Why in scope:** This is the single most-used Trello surface. Without it cards are sticky notes.
-- **Priority:** P0
-- **Dependencies:** F-01
-- **Acceptance criteria:**
-  - Clicking the card body (not the kebab, not the vote button) opens a modal with the card's full state.
-  - Sections: Title (inline edit), Description (markdown-light: line breaks + links rendered, no full markdown renderer), Checklist, Comments, Sidebar with Due date / Labels / Members / Archive.
-  - Esc and overlay click close. URL hash updates to `#card=<id>` so the modal survives refresh and is shareable in-tab.
-  - On close, focus returns to the originating card element if it's still in the DOM (best-effort; silent no-op if the card has moved or been deleted).
-  - Edits are autosaved on blur; no explicit Save button.
-  - In retro mode, vote button + voter avatars also appear in the modal header.
-  - Read-only when board is closed: all controls disabled, content visible.
-- **Out of scope for v1:** activity log, attachments, cover images, watching/subscribing, full markdown.
-
----
-
-### F-08 — Card description (in modal)
-
-- **User story:** As a user, I want to write a description on a card so I can capture the context, not just the headline.
-- **Why in scope:** Trello's #1 card field by usage.
-- **Priority:** P0
-- **Dependencies:** F-07
-- **Acceptance criteria:**
-  - Multi-line textarea, autosizes up to ~12 rows then scrolls.
-  - Empty state shows placeholder "Add a more detailed description…".
-  - URLs are auto-linked on render (read mode).
-  - Saved on blur; toast on save is suppressed (too chatty).
-  - Card preview on the board shows a small "description" indicator icon when description is non-empty.
-
----
-
-### F-09 — Card checklist
-
-- **User story:** As a user, I want a checklist on a card so I can break work into checkable steps and see progress.
-- **Why in scope:** High-frequency feature; pairs naturally with kanban "definition of done."
-- **Priority:** P1
-- **Dependencies:** F-07
-- **Acceptance criteria:**
-  - One checklist per card (multi-checklist deferred).
-  - Add item, check/uncheck, edit text, delete item, reorder via drag handle.
-  - Header shows "X / Y" complete; same indicator appears on the card preview when items > 0.
-  - Completed items render struck-through; option to "Hide completed" inside the card modal.
-- **Out of scope for v1:** assigning checklist items to people, due dates per item, multiple checklists.
-
----
-
-### F-10 — Card due date
-
-- **User story:** As a user, I want to set a due date on a card so I can plan and see what's overdue.
-- **Why in scope:** Standard kanban field; cheap to implement.
-- **Priority:** P1
-- **Dependencies:** F-07
-- **Acceptance criteria:**
-  - Date picker in the card modal sidebar (no time-of-day in v1 — date only).
-  - Card preview shows a date pill: neutral if future, warning if today, danger if overdue, muted if completed.
-  - "Mark complete" toggle next to the date.
-  - Clearable.
-- **Out of scope for v1:** reminders/notifications, recurring due dates, time zones beyond local.
-
----
-
-### F-11 — Card labels
-
-- **User story:** As a user, I want to tag cards with labels so I can categorize and filter at a glance.
-- **Why in scope:** Filtering (F-15) needs labels.
-- **Priority:** P1
-- **Dependencies:** F-07
-- **Acceptance criteria:**
-  - A board has a label set (default: 6 colored labels, no names).
-  - In the card modal, "Labels" picker shows all board labels with a checkbox; user can also rename / add / delete labels (board-owner only).
-  - Card preview shows label color stripes above the body, clipped to a max of 5.
-  - Label color palette is fixed (6 colors) — picked from existing design tokens, no custom hex in v1.
-
----
-
-### F-12 — Card members assigned
-
-- **User story:** As a user, I want to assign a card to one or more members so it's clear who owns it.
-- **Why in scope:** Standard kanban; pairs with filter by member.
-- **Priority:** P1
-- **Dependencies:** F-07
-- **Acceptance criteria:**
-  - Member picker in the card modal sidebar pulls from board members (v1: hardcoded `USERS` list).
-  - Multiple assignees allowed.
-  - Card preview shows assignee avatars (max 3, "+N" if more).
-  - Filter-by-member (F-15) reads this field.
-- **Out of scope for v1:** real invites; "members" are local stubs.
-- **Backend follow-up:** real auth + invite flow.
-
----
-
-### F-13 — Card comments
-
-- **User story:** As a user, I want to comment on a card so discussion stays attached to the work.
-- **Why in scope:** High-value, but currently single-user — so it's a P1 not a P0 (you're commenting to yourself for now).
-- **Priority:** P1
-- **Dependencies:** F-07
-- **Acceptance criteria:**
-  - Comment composer at the top of the comments section. Submit via Cmd/Ctrl+Enter.
-  - Comments show author avatar, name, relative timestamp, body.
-  - Edit and delete on own comments (kebab menu, same pattern as cards).
-  - Comment count badge on card preview when > 0.
-- **Out of scope for v1:** mentions, reactions, threading.
-
----
-
-### F-14 — Card archive (and unarchive)
-
-- **User story:** As a user, I want to archive cards I'm done with instead of deleting them, so I can clean up the board without losing history.
-- **Why in scope:** Trello's lightweight "remove from view but keep" pattern; common request alongside delete.
-- **Priority:** P1
-- **Dependencies:** F-07
-- **Acceptance criteria:**
-  - "Archive" action in the card modal sidebar (and in card kebab menu).
-  - Archived cards disappear from columns but appear in a per-board "Archived items" panel (accessible from board settings menu in topbar).
-  - From the archive panel, user can unarchive (returns to last column position if it still exists, else to first column) or permanently delete.
-  - Card delete (existing) becomes "Delete forever" and only appears in the archive panel; the kebab on a live card archives instead. (Migration note: existing "Delete" copy in HANDOVER §4.6 stays for the *permanent* delete in archive panel.)
-
----
-
-### F-15 — Search and filter (per-board)
-
-- **User story:** As a user, I want to filter the board by text, label, member, or due-date status so I can focus on a slice of the board.
-- **Why in scope:** Once boards have >20 cards, scanning gets hard. Filters pay for themselves daily.
-- **Priority:** P1
-- **Dependencies:** F-11, F-12, F-10 (filters); F-01 (search across cards in current board)
-- **Acceptance criteria:**
-  - Topbar gains a "Filter" button → opens a popover with: text input, label multi-select, member multi-select, due-date status (none / overdue / due this week / completed).
-  - Active filter shows a count badge; cards not matching are visually de-emphasized (not removed from layout, so column shape stays predictable). Toggle "Hide non-matching" in the popover removes them entirely.
-  - "Clear all" resets.
-  - In retro discussion mode, filtering is hidden (focus mode owns the screen).
-- **Out of scope for v1:** cross-board search, saved filters, filter by date range.
-
----
-
-### F-16 — Empty states (board, column)
-
-- **User story:** As a user encountering an empty board or column, I want a friendly nudge that tells me what to do, so I'm not staring at nothing.
-- **Why in scope:** Called out in HANDOVER §5; copy already exists in §4.6.
-- **Priority:** P1
-- **Dependencies:** F-05
-- **Acceptance criteria:**
-  - Empty board: "No cards yet. Be the first — what's on your mind?" with focus moved to the first column's "Add a card" composer.
-  - Empty column: "Nothing here yet." muted, centered in the column body.
-  - Empty boards list: covered by F-02.
-  - Empty filter result: "No cards match your filter." with "Clear filter" link.
-
----
-
-### F-17 — Board settings menu (rename theme, archive board, reopen)
-
-- **User story:** As a board owner, I want a settings menu in the topbar where I can edit board-level things (theme, archive, reopen, view archived items, manage labels).
-- **Why in scope:** A bunch of small actions need a home; without a menu they sprawl.
-- **Priority:** P1
-- **Dependencies:** F-02 (archive needs the list to surface it), F-11 (manage labels), F-14 (archived items panel)
-- **Acceptance criteria:**
-  - Topbar gains a kebab/settings menu next to Close board.
-  - Items: Edit theme prompt (retro only), Manage labels, Archived items, Archive board, (if closed) Reopen board, (if archived) Unarchive board.
-  - "Archive board" is a soft delete: board is removed from the open list but stays in the Archived group on the boards list, and can be unarchived.
-  - Reopen toggles `state` from closed back to open (already half-implemented — currently closed is a one-way trip).
-
----
-
-### F-18 — Star / favorite a board
-
-- **User story:** As a user with many boards, I want to star the ones I work on daily so they sort to the top.
-- **Why in scope:** Tiny feature, big quality-of-life payoff once F-02 has > 5 boards.
-- **Priority:** P2
-- **Dependencies:** F-02
-- **Acceptance criteria:**
-  - Star icon on each boards-list card and on each board's topbar.
-  - Starred boards appear in their own "Starred" group on the list, ordered by most-recently-starred.
-  - Sidebar "Retros" list shows starred retros first.
-
----
-
-### F-19 — Keyboard shortcuts (global + board)
-
-- **User story:** As a power user, I want keyboard shortcuts for the actions I use constantly so I don't have to mouse around.
-- **Why in scope:** Cheap; matches the Linear-mood design language.
-- **Priority:** P2
-- **Dependencies:** F-02, F-07, F-15
-- **Acceptance criteria:**
-  - `c` from a board: focus the first column's "Add a card" composer.
-  - `/` from a board: open filter popover with focus in text input.
-  - `b` from anywhere: navigate to boards list.
-  - `?`: opens a shortcuts cheat-sheet modal.
-  - Existing discussion-mode keys (←/→/Esc) documented in the cheat-sheet.
-  - Shortcuts disabled when an input/textarea is focused (except Esc).
-- **Out of scope for v1:** customizing shortcuts.
-
----
-
-### F-20 — Action items export (retro-only)
-
-- **User story:** As a retro facilitator, I want to export the "Try next time" / action-item column as a list I can paste into Slack or a doc, so the takeaways don't die in the board.
-- **Why in scope:** The single biggest miss in retro tooling — teams forget commitments. Cheap to add.
-- **Priority:** P2
-- **Dependencies:** F-01
-- **Acceptance criteria:**
-  - In retro boards, board-settings menu shows "Copy action items" → copies a markdown bulleted list of the cards in the rightmost column with vote count to clipboard.
-  - Toast confirms.
-  - Optional second action: "Copy full retro summary" → markdown grouped by column.
-- **Out of scope for v1:** integrations (Slack, Linear, Jira); real export to file.
-
----
-
-### F-21 — Realtime affordances polish (in-app only, single-user)
-
-- **User story:** As a user, I want mutations to feel alive — fade-ins, pulses, smooth removals — so the board feels responsive instead of teleporting.
-- **Why in scope:** HANDOVER §4.4 specifies these animations; they're independent of real backend (we already animate "newIds" for adds).
-- **Priority:** P2
-- **Dependencies:** F-05, F-07
-- **Acceptance criteria:**
-  - New-card pulse: already shipped; extended to cards added via DnD from another column.
-  - Card-edit cross-fade on body change.
-  - Card-delete collapse (height + opacity, 180ms).
-  - Column add/delete fade.
-  - Modal overlays (close-board confirm, card details) use the pointerdown-vs-click pattern so a text-selection drag that releases over the overlay does not close the modal.
-  - Reduced-motion media query disables all of the above.
-- **Out of scope for v1:** Lost-connection banner, "joined 2 min ago" presence tooltips, animations triggered by *other users* — these need a backend.
-- **Backend follow-up:** wire the same animation hooks to incoming socket events.
-
----
-
-### F-22 — Undo (recent destructive actions)
-
-- **User story:** As a user who just deleted the wrong card, I want a one-click undo from the toast so I'm not punished for fast clicks.
-- **Why in scope:** A delete confirm is *not* a substitute for undo. Trello has it. It's the difference between "I trust this app" and "I dread this app."
-- **Priority:** P2
-- **Dependencies:** F-01
-- **Acceptance criteria:**
-  - Card delete, card archive, column delete, board archive each show a toast with an "Undo" button visible for 6 seconds.
-  - Undo restores the exact prior state (position, voters, etc.).
-  - Once the toast expires, undo is gone (no global history panel in v1).
-- **Out of scope for v1:** multi-step undo, undo across page refreshes.
-
----
-
-### OUT — Explicitly cut from v1
+### Deferred (were already cut; remain cut)
 
 | Feature | Why cut |
 |---|---|
-| Real members + invitations | Backend-blocked; stub assignees from local USERS instead (F-12). |
-| Cross-board search | Needs an index; per-board search (F-15) covers 90% of use. |
-| Card attachments / cover images | Storage-blocked; low frequency; bloat. |
-| Board background customization | Pure decoration; doesn't move the product. |
-| Board templates marketplace | Two defaults in F-03 are enough. |
-| Card watching / subscribe / activity log | Multi-user feature; meaningless single-user. |
-| Discussion mode Variant B (spotlight) | Already cut in design (HANDOVER §4.3). |
-| Anonymous mode for non-retro boards | Not requested; retro-specific. |
-| Power-ups / integrations | Out of v1 entirely. |
-| Touch DnD | Needs different interaction model; defer. |
+| Real members + invitations | Backend-blocked; no real auth in v1. |
+| Cross-board / cross-retro search | Needs an index; per-retro scan is sufficient. |
+| Card attachments | Storage-blocked; no role in a retro sticky. |
+| Board background customization | Pure decoration. |
+| Retro template marketplace | Four default columns cover most formats; templates deferred. |
+| Card watching / subscribe / activity log | Multi-user, backend-blocked. |
+| Discussion mode Variant B (spotlight) | Variant A adopted; B is wireframe-only. |
+| Power-ups / integrations (Slack, Jira, Linear) | Backend-blocked for v1. |
+| Touch drag-and-drop | Separate interaction model; deferred. |
 | Lost-connection banner | Needs backend. |
 | Presence "+N" with real users | Needs backend. |
-| Copy / move board across workspaces | No workspaces yet. |
-| Multi-checklist per card | Single checklist (F-09) covers normal use. |
-| Reminders / notifications | Backend-blocked. |
-| Mentions in comments | Needs real users. |
+| Multi-step undo / undo across refreshes | Out of scope; 6-second toast covers normal use. |
+| Column reorder by drag | Dropped from F-06 (kanban polish, not retro need). |
+| Keyboard DnD for columns (`Ctrl/Cmd+Arrow`) | Dropped from F-06 same reason. |
+| Timer / time-boxing per card | Retro-relevant but low frequency; deferred to v2. |
+| Anonymous mode for non-retro boards | N/A — there are no non-retro boards. |
+| Retro themes ("4Ls", "Start/Stop/Continue") | Facilitator can name columns manually; template system deferred. |
 
 ---
 
-## Build sequence
+## Build sequence (cleanup + new work)
 
-Order respects dependencies. Each step is a single Designer→Developer cycle.
+All shipped work (F-01 through F-22, except items amended above) is already done. The remaining work is:
 
-1. **F-01** — multi-board data model + localStorage persistence *(foundation; nothing else works without it)*
-2. **F-04** — board routing + per-board view shell *(unblocks the list page)*
-3. **F-02** — boards list page
-4. **F-03** — create-board dialog
-5. **F-05** — column CRUD
-6. **F-16** — empty states *(cheap; pairs naturally with F-05; lands while column code is fresh)*
-7. **F-06** — drag-and-drop (cards + columns)
-8. **F-07** — card details modal *(shell only; sub-features land next)*
-9. **F-08** — card description
-10. **F-11** — card labels *(needed before F-15 filter)*
-11. **F-12** — card members assigned *(also needed before F-15)*
-12. **F-10** — card due date *(also needed before F-15)*
-13. **F-09** — card checklist
-14. **F-13** — card comments
-15. **F-14** — card archive
-16. **F-15** — search and filter
-17. **F-17** — board settings menu *(needs F-11, F-14 to have things to surface)*
-18. **F-18** — star / favorite a board
-19. **F-22** — undo on destructive actions *(touches several flows; lands once they exist)*
-20. **F-19** — keyboard shortcuts
-21. **F-20** — action items export
-22. **F-21** — realtime affordances polish *(final pass; depends on most surfaces existing)*
-
-End of v1 = F-22. v2 begins when backend is introduced; revisit OUT list at that point.
+1. **F-15-RM** — filter removal (most isolated; no data dependencies on any retro flow)
+2. **F-13-RM** — comments removal (isolated component + store mutations)
+3. **F-12-RM** — members/assignees removal
+4. **F-11-RM** — labels removal (touches card preview, board model, and settings menu)
+5. **F-10-RM** — due date removal (touches card preview and card modal sidebar)
+6. **F-14-RM** — archive removal (touches store, `ArchivedItemsPanel`, and undo flow — verify F-22 undo still fires on plain delete)
+7. **F-TYPE-RM** — type-gating cleanup + sidebar merge (cross-cutting; do after component cleanup so there are no references to removed surfaces left to untangle)
+8. **F-09** — action-list rename + modal relabel + card-preview badge removal
+9. **F-23** — Finish Discussion → Action column (only net-new feature; builds directly on F-09)
+10. **F-MIGRATE** — localStorage schema bump + migration (final step, after all type and field changes are stable)
