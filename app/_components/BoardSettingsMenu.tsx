@@ -1,12 +1,11 @@
 "use client";
 
-// F-17 — Board settings popover, mounted in the topbar after `Close board`.
+// F-17 — Retro settings popover, mounted in the topbar after `Close board`.
 //
 // Surfaces a kebab/settings trigger. Clicking opens a small menu of board-level
 // actions; each one either flips state (reopen / unarchive), opens a confirm
 // (archive board), or opens a sub-modal/panel owned by the parent (edit theme,
-// manage labels, archived items). The menu items vary by board type and state
-// per the F-17 spec §3.
+// archived items). The menu items vary by state per the F-17 spec §3.
 
 import { useEffect, useRef, useState } from "react";
 import type { Board } from "../_data/retro";
@@ -61,17 +60,16 @@ export function BoardSettingsMenu({
 
   const closed = board.state === "closed";
   const archived = !!board.archivedAt;
-  const isRetro = board.type === "retro";
   const archivedCount = board.archivedCards.length;
 
   // Section visibility per spec §3 / §8.
-  const showEditTheme = isRetro && !closed && !archived;
+  const showEditTheme = !closed && !archived;
   const showArchiveBoard = !archived;
   const showReopen = closed && !archived;
   const showUnarchive = archived;
-  // F-20: retro exports work even on closed / archived boards (read-only
+  // F-20: exports work even on closed / archived boards (read-only
   // doesn't prevent reading) — exporting a finished retro is the whole point.
-  const showExports = isRetro && !!onCopyActionItems && !!onCopyFullSummary;
+  const showExports = !!onCopyActionItems && !!onCopyFullSummary;
   // Divider sits between the "view" actions and the state-changing actions
   // when at least one of the latter is visible.
   const showDivider = showArchiveBoard || showReopen || showUnarchive;
@@ -90,7 +88,7 @@ export function BoardSettingsMenu({
         type="button"
         className="btn-icon board-settings-btn"
         onClick={() => setOpen((o) => !o)}
-        aria-label="Board settings"
+        aria-label="Retro settings"
         aria-haspopup="menu"
         aria-expanded={open}
       >
@@ -148,7 +146,7 @@ export function BoardSettingsMenu({
               role="menuitem"
               onClick={click(onReopenBoard)}
             >
-              Reopen board
+              Reopen retro
             </button>
           )}
           {showUnarchive && (
@@ -158,7 +156,7 @@ export function BoardSettingsMenu({
               role="menuitem"
               onClick={click(onUnarchiveBoard)}
             >
-              Unarchive board
+              Unarchive retro
             </button>
           )}
           {showArchiveBoard && (
@@ -168,7 +166,7 @@ export function BoardSettingsMenu({
               role="menuitem"
               onClick={click(onArchiveBoard)}
             >
-              Archive board
+              Archive retro
             </button>
           )}
         </div>

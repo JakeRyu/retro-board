@@ -13,7 +13,6 @@ type CardDetailsModalProps = {
   users: User[];
   /** Board id — needed by sub-features whose store actions are board-scoped. */
   boardId: string;
-  isRetro: boolean;
   anonymous: boolean;
   readOnly: boolean;
   onClose: () => void;
@@ -36,7 +35,6 @@ export function CardDetailsModal({
   card,
   users,
   boardId,
-  isRetro,
   anonymous,
   readOnly,
   onClose,
@@ -102,7 +100,7 @@ export function CardDetailsModal({
   };
 
   const voted = card.voters.includes("me");
-  const showVoteRow = isRetro && !readOnly;
+  const showVoteRow = !readOnly;
 
   return (
     <div

@@ -61,7 +61,7 @@ export function BoardCard({ board }: Props) {
         type="button"
         className={"board-card-star" + (board.starred ? " on" : "")}
         onClick={onStarClick}
-        aria-label={board.starred ? "Unstar board" : "Star board"}
+        aria-label={board.starred ? "Unstar retro" : "Star retro"}
         aria-pressed={board.starred}
       >
         <Icon
@@ -80,9 +80,8 @@ export function BoardCard({ board }: Props) {
       />
 
       <div className="board-card-meta">
-        <span className={"state-pill " + board.type}>{board.type}</span>
         <span className="board-card-count">
-          · {cardCount(board)} {cardCount(board) === 1 ? "card" : "cards"}
+          {cardCount(board)} {cardCount(board) === 1 ? "card" : "cards"}
         </span>
       </div>
 
@@ -101,7 +100,7 @@ export function BoardCard({ board }: Props) {
           type="button"
           className="board-card-kebab"
           onClick={onKebab}
-          aria-label="Board actions"
+          aria-label="Retro actions"
           aria-haspopup="menu"
           aria-expanded={menuOpen}
         >

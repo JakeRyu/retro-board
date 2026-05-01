@@ -63,17 +63,17 @@ function BoardNotFound() {
       <div className="main">
         <div className="topbar">
           <div className="crumbs">
-            <Link href="/" className="crumb-link">Boards</Link>
+            <Link href="/" className="crumb-link">Retros</Link>
             <span className="crumb-sep">/</span>
             <span style={{ color: "var(--fg4)", fontStyle: "italic" }}>not found</span>
           </div>
         </div>
         <div className="board-empty">
           <div className="modal">
-            <h2>Board not found.</h2>
-            <p>This board may have been deleted, or the link is out of date.</p>
+            <h2>Retro not found.</h2>
+            <p>This retro may have been deleted, or the link is out of date.</p>
             <div className="modal-actions">
-              <Link href="/" className="btn btn-primary">Back to boards</Link>
+              <Link href="/" className="btn btn-primary">Back to retros</Link>
             </div>
           </div>
         </div>
@@ -119,7 +119,7 @@ function findCardOnBoard(board: Board, cardId: string): CardType | undefined {
 function RetroAppLoaded({ board }: { board: Board }) {
   const columns = board.columns;
   const closed = board.state === "closed";
-  const crumbPrefix = board.type === "retro" ? "Retros" : "Boards";
+  const crumbPrefix = "Retros";
   const isOwner = useIsOwner(board);
 
   const [anonymous, setAnonymous] = useState(false);
@@ -770,9 +770,9 @@ function RetroAppLoaded({ board }: { board: Board }) {
               type="button"
               className={"topbar-star" + (board.starred ? " on" : "")}
               onClick={() => storeActions.toggleStar(board.id)}
-              aria-label={board.starred ? "Unstar board" : "Star board"}
+              aria-label={board.starred ? "Unstar retro" : "Star retro"}
               aria-pressed={board.starred}
-              title={board.starred ? "Unstar board" : "Star board"}
+              title={board.starred ? "Unstar retro" : "Star retro"}
             >
               <Icon
                 name="star"
@@ -832,12 +832,8 @@ function RetroAppLoaded({ board }: { board: Board }) {
                 onArchiveBoard={() => setConfirmArchiveBoard(true)}
                 onReopenBoard={reopenBoard}
                 onUnarchiveBoard={unarchiveBoard}
-                onCopyActionItems={
-                  board.type === "retro" ? onCopyActionItems : undefined
-                }
-                onCopyFullSummary={
-                  board.type === "retro" ? onCopyFullSummary : undefined
-                }
+                onCopyActionItems={onCopyActionItems}
+                onCopyFullSummary={onCopyFullSummary}
               />
             )}
           </div>
@@ -1044,7 +1040,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
           card={openCard}
           users={USERS}
           boardId={board.id}
-          isRetro={board.type === "retro"}
           anonymous={anonymous}
           readOnly={closed}
           onClose={closeCardModal}

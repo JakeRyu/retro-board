@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import { BOARD_COLORS, type BoardType } from "../_data/retro";
+import { BOARD_COLORS } from "../_data/retro";
 import { storeActions } from "../_data/store";
 import { useOverlayDismiss } from "../_hooks/useOverlayDismiss";
 
@@ -30,7 +30,6 @@ export function CreateBoardDialog({ open, onClose }: Props) {
   const router = useRouter();
 
   const [title, setTitle] = useState("");
-  const [type, setType] = useState<BoardType>("kanban");
   const [theme, setTheme] = useState("");
   const [color, setColor] = useState<string>(BOARD_COLORS[0]);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +40,6 @@ export function CreateBoardDialog({ open, onClose }: Props) {
   const swatchRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const titleLabelId = useId();
-  const typeLabelId = useId();
   const themeLabelId = useId();
   const colorLabelId = useId();
   const errorId = useId();
@@ -52,7 +50,6 @@ export function CreateBoardDialog({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) return;
     setTitle("");
-    setType("kanban");
     setTheme("");
     setColor(pickRandomColor());
     setError(null);
@@ -105,9 +102,8 @@ export function CreateBoardDialog({ open, onClose }: Props) {
       try {
         const id = storeActions.createBoard({
           title: trimmed,
-          type,
           color,
-          theme: type === "retro" ? theme.trim() : "",
+          theme: theme.trim(),
         });
         // Close before pushing so the trigger gets refocused; navigation
         // will then mount a fresh page.
@@ -118,19 +114,12 @@ export function CreateBoardDialog({ open, onClose }: Props) {
         setError("Couldn't save — your browser's storage is full.");
       }
     }, SUBMIT_DELAY_MS);
-  }, [title, type, color, theme, onClose, router]);
+  }, [title, color, theme, onClose, router]);
 
   const onTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
       submit();
-    }
-  };
-
-  const onSegmentedKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-      e.preventDefault();
-      setType((t) => (t === "kanban" ? "retro" : "kanban"));
     }
   };
 
@@ -169,8 +158,6 @@ export function CreateBoardDialog({ open, onClose }: Props) {
         ? "warn"
         : "default";
 
-  const isRetro = type === "retro";
-
   // F-21: pointerdown-vs-click guard so a text-selection drag from the title
   // input that releases over the overlay doesn't cancel the dialog.
   const overlay = useOverlayDismiss(onClose);
@@ -195,7 +182,7 @@ export function CreateBoardDialog({ open, onClose }: Props) {
         aria-modal="true"
         aria-labelledby={dialogTitleId}
       >
-        <h2 id={dialogTitleId}>Create a new board</h2>
+        <h2 id={dialogTitleId}>Create retro</h2>
 
         {/* Title field */}
         <div className="field">
@@ -232,65 +219,21 @@ export function CreateBoardDialog({ open, onClose }: Props) {
           )}
         </div>
 
-        {/* Type segmented control */}
+        {/* Theme prompt */}
         <div className="field">
-          <span className="field-label" id={typeLabelId}>Type</span>
-          <div
-            className="segmented"
-            role="radiogroup"
-            aria-labelledby={typeLabelId}
-            onKeyDown={onSegmentedKeyDown}
-          >
-            <span
-              className="segmented-indicator"
-              aria-hidden
-              data-pos={type}
-            />
-            <button
-              type="button"
-              role="radio"
-              aria-checked={type === "kanban"}
-              aria-selected={type === "kanban"}
-              tabIndex={type === "kanban" ? 0 : -1}
-              className="segmented-option"
-              onClick={() => setType("kanban")}
-              disabled={submitting}
-            >
-              Kanban
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={type === "retro"}
-              aria-selected={type === "retro"}
-              tabIndex={type === "retro" ? 0 : -1}
-              className="segmented-option"
-              onClick={() => setType("retro")}
-              disabled={submitting}
-            >
-              Retro
-            </button>
-          </div>
-        </div>
-
-        {/* Theme prompt — animated reveal */}
-        <div className={"theme-prompt-collapse" + (isRetro ? " open" : "")}>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label className="field-label" htmlFor={themeLabelId}>
-              Theme prompt
-            </label>
-            <textarea
-              id={themeLabelId}
-              className="add-card-input field-input"
-              value={theme}
-              onChange={(e) => setTheme(e.target.value)}
-              placeholder="What's this retro about? Stay specific — talk about behaviors, not people."
-              rows={3}
-              disabled={submitting || !isRetro}
-              tabIndex={isRetro ? 0 : -1}
-              aria-hidden={!isRetro}
-            />
-          </div>
+          <label className="field-label" htmlFor={themeLabelId}>
+            Theme prompt
+          </label>
+          <textarea
+            id={themeLabelId}
+            className="add-card-input field-input"
+            value={theme}
+            onChange={(e) => setTheme(e.target.value)}
+            placeholder="What's this retro about? Stay specific — talk about behaviors, not people."
+            rows={3}
+            disabled={submitting}
+            tabIndex={0}
+          />
         </div>
 
         {/* Color swatches */}
@@ -344,7 +287,7 @@ export function CreateBoardDialog({ open, onClose }: Props) {
             onClick={submit}
             disabled={submitting}
           >
-            {submitting ? "Creating…" : "Create board"}
+            {submitting ? "Creating…" : "Create retro"}
           </button>
         </div>
       </div>

@@ -80,14 +80,14 @@ export function BoardsPage() {
       <div className="main">
         <div className="topbar">
           <div className="boards-page-head">
-            <h1 className="boards-page-title">Boards</h1>
+            <h1 className="boards-page-title">Retros</h1>
             <div className="boards-page-spacer" />
             <button
               className="btn btn-primary"
               type="button"
               onClick={onCreateBoard}
             >
-              <span style={{ color: "currentColor" }}>+</span> Create board
+              <span style={{ color: "currentColor" }}>+</span> Create retro
             </button>
           </div>
         </div>
@@ -95,18 +95,15 @@ export function BoardsPage() {
         {totalBoards === 0 ? (
           <div className="board-empty">
             <div className="modal">
-              <h2>No boards yet.</h2>
-              <p>
-                Create one to get started — kanban for ongoing work, retro for a team
-                look-back.
-              </p>
+              <h2>No retros yet.</h2>
+              <p>Create your first retro to get started.</p>
               <div className="modal-actions">
                 <button
                   className="btn btn-primary"
                   type="button"
                   onClick={onCreateBoard}
                 >
-                  Create board
+                  Create retro
                 </button>
               </div>
             </div>

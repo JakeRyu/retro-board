@@ -5,8 +5,6 @@ export type User = {
   color: string;
 };
 
-export type BoardType = "kanban" | "retro";
-
 export type ChecklistItem = {
   id: string;
   text: string;
@@ -38,7 +36,7 @@ export type Column = {
 
 export type Board = {
   id: string;
-  type: BoardType;
+  type: "retro";
   title: string;
   theme: string;
   created: string;
@@ -205,48 +203,6 @@ export const SEED_BOARD: Board = {
 
 // Additional seed boards so the boards list demonstrates grouping
 // (Starred / Open / Closed / Archived). Cards are intentionally sparse.
-function emptyKanbanColumns(): Column[] {
-  return [
-    { id: "todo", title: "To do", desc: "", cards: [] },
-    { id: "doing", title: "In progress", desc: "", cards: [] },
-    { id: "done", title: "Done", desc: "", cards: [] },
-  ];
-}
-
-export const SEED_BOARD_KANBAN: Board = {
-  id: "b-seed-platform-q2",
-  type: "kanban",
-  title: "Platform Q2 roadmap",
-  theme: "",
-  created: "Apr 18",
-  state: "open",
-  createdAt: "2026-04-18T09:00:00.000Z",
-  updatedAt: "2026-04-27T15:30:00.000Z",
-  starred: true,
-  starredAt: "2026-04-27T15:30:00.000Z",
-  color: BOARD_COLORS[2],
-  columns: [
-    {
-      id: "todo",
-      title: "To do",
-      desc: "",
-      cards: [
-        { id: "pq1", body: "Migrate edge cache to v2 config.", authorId: "u3", voters: [] },
-        { id: "pq2", body: "Spike: per-tenant rate limits.", authorId: "me", voters: [] },
-      ],
-    },
-    {
-      id: "doing",
-      title: "In progress",
-      desc: "",
-      cards: [
-        { id: "pq3", body: "Auth refresh-token rotation.", authorId: "u6", voters: [] },
-      ],
-    },
-    { id: "done", title: "Done", desc: "", cards: [] },
-  ],
-  archivedCards: [],
-};
 
 export const SEED_BOARD_CLOSED: Board = {
   id: "b-seed-sprint-23",
@@ -260,7 +216,7 @@ export const SEED_BOARD_CLOSED: Board = {
   updatedAt: "2026-04-17T17:00:00.000Z",
   starred: false,
   color: BOARD_COLORS[1],
-  columns: emptyKanbanColumns(),
+  columns: [],
   archivedCards: [],
 };
 
@@ -276,13 +232,12 @@ export const SEED_BOARD_ARCHIVED: Board = {
   archivedAt: "2026-04-04T11:00:00.000Z",
   starred: false,
   color: BOARD_COLORS[3],
-  columns: emptyKanbanColumns(),
+  columns: [],
   archivedCards: [],
 };
 
 export const SEED_BOARDS: Board[] = [
   SEED_BOARD,
-  SEED_BOARD_KANBAN,
   SEED_BOARD_CLOSED,
   SEED_BOARD_ARCHIVED,
 ];

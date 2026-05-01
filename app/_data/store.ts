@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type {
   Board,
-  BoardType,
   Card,
   ChecklistItem,
   Column,
@@ -202,25 +201,17 @@ function updateBoardById(id: string, updater: (b: Board) => Board) {
   commit({ ...state, boards: nextBoards });
 }
 
-function defaultColumnsFor(type: BoardType): Column[] {
-  if (type === "retro") {
-    return [
-      { id: "c-went-well", title: "What went well", desc: "", cards: [] },
-      { id: "c-didnt", title: "What didn't", desc: "", cards: [] },
-      { id: "c-try", title: "Try next time", desc: "", cards: [] },
-      { id: "c-shout", title: "Shout-outs", desc: "", cards: [] },
-    ];
-  }
+function defaultColumns(): Column[] {
   return [
-    { id: "c-todo", title: "To do", desc: "", cards: [] },
-    { id: "c-doing", title: "In progress", desc: "", cards: [] },
-    { id: "c-done", title: "Done", desc: "", cards: [] },
+    { id: "c-went-well", title: "What went well", desc: "", cards: [] },
+    { id: "c-didnt", title: "What didn't", desc: "", cards: [] },
+    { id: "c-try", title: "Try next time", desc: "", cards: [] },
+    { id: "c-shout", title: "Shout-outs", desc: "", cards: [] },
   ];
 }
 
 export type CreateBoardInput = {
   title: string;
-  type: BoardType;
   color: string;
   theme?: string;
 };
@@ -241,7 +232,7 @@ export const storeActions = {
       : BOARD_COLORS[0];
     const board: Board = {
       id,
-      type: input.type,
+      type: "retro",
       title: input.title,
       theme: input.theme ?? "",
       created: now.slice(0, 10),
@@ -250,7 +241,7 @@ export const storeActions = {
       updatedAt: now,
       starred: false,
       color,
-      columns: defaultColumnsFor(input.type),
+      columns: defaultColumns(),
       archivedCards: [],
     };
     const prevState = state;

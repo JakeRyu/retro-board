@@ -25,26 +25,15 @@ export function Sidebar() {
 
   const activeBoards = boards.filter((b) => !b.archivedAt);
   const retros = activeBoards
-    .filter((b) => b.type === "retro")
     .slice()
     .sort((a, b) => {
-      // Spec §7: starred retros first; otherwise stable input order.
+      // Starred retros first; otherwise stable input order.
       if (a.starred !== b.starred) return a.starred ? -1 : 1;
       return 0;
     });
 
-  // Active-state rule (spec §7):
-  //   "/"               -> Boards
-  //   "/boards/[id]" kanban -> Boards
-  //   "/boards/[id]" retro  -> matching retro row, NOT Boards
   const boardIdMatch = pathname.match(/^\/boards\/([^/]+)/);
   const activeBoardId = boardIdMatch?.[1];
-  const activeBoard = activeBoardId
-    ? boards.find((b) => b.id === activeBoardId)
-    : undefined;
-  const isRetroRoute = activeBoard?.type === "retro";
-
-  const boardsItemActive = pathname === "/" || (!!activeBoard && !isRetroRoute);
 
   return (
     <aside className="sidebar">
@@ -77,7 +66,7 @@ export function Sidebar() {
         </div>
         <Link
           href="/"
-          className={"side-item" + (boardsItemActive ? " active" : "")}
+          className={"side-item" + (pathname === "/" ? " active" : "")}
         >
           <Icon name="board" size={15} /> Boards
           <span className="count">{activeBoards.length}</span>
@@ -97,10 +86,10 @@ export function Sidebar() {
           <span className="side-create-glyph" aria-hidden>
             +
           </span>
-          Create board
+          Create retro
         </button>
         {retros.map((b) => {
-          const isActive = isRetroRoute && b.id === activeBoardId;
+          const isActive = b.id === activeBoardId;
           const count = cardCount(b);
           return (
             <Link
