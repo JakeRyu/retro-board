@@ -147,8 +147,6 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
   const checklistDone = card.checklist?.filter((i) => i.done).length ?? 0;
   const hasChecklist = checklistTotal > 0;
   const checklistComplete = hasChecklist && checklistDone === checklistTotal;
-  const commentCount = card.comments?.length ?? 0;
-  const hasComments = commentCount > 0;
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(card.body);
@@ -342,20 +340,6 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
               title="This card has a description"
             >
               <Icon name="description" size={12} />
-            </span>
-          )}
-          {hasComments && (
-            <span
-              className="card-comment-indicator"
-              aria-label={
-                commentCount === 1 ? "1 comment" : `${commentCount} comments`
-              }
-              title={
-                commentCount === 1 ? "1 comment" : `${commentCount} comments`
-              }
-            >
-              <Icon name="comment" size={12} />
-              <span>{commentCount}</span>
             </span>
           )}
           <Voters voterIds={card.voters} users={users} anonymous={anonymous} />

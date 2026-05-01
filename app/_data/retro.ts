@@ -13,14 +13,6 @@ export type ChecklistItem = {
   done: boolean;
 };
 
-export type Comment = {
-  id: string;
-  authorId: string;
-  body: string;
-  createdAt: string;
-  updatedAt?: string;
-};
-
 export type Label = {
   id: string;
   name: string;
@@ -33,7 +25,6 @@ export type Card = {
   authorId: string;
   voters: string[];
   description?: string;
-  comments?: Comment[];
   checklist?: ChecklistItem[];
   dueDate?: string;
   dueComplete?: boolean;
