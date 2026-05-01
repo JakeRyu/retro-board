@@ -136,10 +136,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
   const isMine = card.authorId === "me" && !readOnly;
   const voted = card.voters.includes("me");
   const hasDescription = !!card.description && card.description.trim().length > 0;
-  const checklistTotal = card.checklist?.length ?? 0;
-  const checklistDone = card.checklist?.filter((i) => i.done).length ?? 0;
-  const hasChecklist = checklistTotal > 0;
-  const checklistComplete = hasChecklist && checklistDone === checklistTotal;
+  const hasActionItems = (card.actionItems?.length ?? 0) > 0;
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(card.body);
@@ -300,21 +297,6 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
           </span>
         ) : null}
         <div className="vote-row">
-          {hasChecklist && (
-            <span
-              className={
-                "card-checklist-indicator" +
-                (checklistComplete ? " complete" : "")
-              }
-              aria-label={`${checklistDone} of ${checklistTotal} checklist items complete`}
-              title={`${checklistDone} of ${checklistTotal} checklist items complete`}
-            >
-              <Icon name="checklist" size={12} />
-              <span>
-                {checklistDone}/{checklistTotal}
-              </span>
-            </span>
-          )}
           {hasDescription && (
             <span
               className="card-desc-indicator"
@@ -322,6 +304,15 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
               title="This card has a description"
             >
               <Icon name="description" size={12} />
+            </span>
+          )}
+          {hasActionItems && (
+            <span
+              className="card-actions-indicator"
+              aria-label="Has action items"
+              title="This card has action items"
+            >
+              <Icon name="actions" size={12} />
             </span>
           )}
           <Voters voterIds={card.voters} users={users} anonymous={anonymous} />

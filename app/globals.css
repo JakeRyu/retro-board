@@ -490,7 +490,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* ---------- card details modal (F-07 shell) ----------
-   Slot wrappers (.cd-description, .cd-checklist,
+   Slot wrappers (.cd-description, .cd-action-items,
    .cd-side-archive)
    are owned by F-08–F-14. F-07 only ships their layout/spacing. */
 .modal.modal-card-details {
@@ -530,7 +530,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 .cd-main { display: flex; flex-direction: column; min-width: 0; }
 .cd-side { display: flex; flex-direction: column; }
 
-.cd-description, .cd-checklist { margin-bottom: 18px; }
+.cd-description, .cd-action-items { margin-bottom: 18px; }
 .cd-main > section:last-child { margin-bottom: 0; }
 .cd-side-archive {
   margin-bottom: 14px;
@@ -698,71 +698,35 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   color: var(--fg3);
 }
 
-.card-desc-indicator {
+.card-desc-indicator,
+.card-actions-indicator {
   display: inline-flex; align-items: center;
   color: var(--fg4);
   margin-right: 4px;
 }
 
-/* ---------- card checklist (F-09) ---------- */
-.checklist { display: flex; flex-direction: column; gap: 6px; }
+/* ---------- action list (F-09) ---------- */
+.action-list { display: flex; flex-direction: column; gap: 6px; }
 
-.checklist-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 4px;
-  font-size: 11px; color: var(--fg4);
-}
-.checklist-progress {
-  font-family: var(--font-mono); font-size: 11px;
-  color: var(--fg3);
+.cd-action-items.discussion-active {
+  border-left: 2px solid rgba(94, 106, 210, 0.55);
+  padding-left: 10px;
+  margin-left: -12px;
 }
 
-.checklist-toggle-hide {
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 22px; padding: 0 8px;
-  border-radius: 999px;
-  border: 1px solid var(--border-1);
-  background: var(--surface-02);
-  color: var(--fg3);
-  font-size: 11px; font-weight: 510;
-  cursor: pointer;
-}
-.checklist-toggle-hide:hover {
-  color: var(--fg2);
-  border-color: var(--border-2);
-}
-.checklist-toggle-hide[data-on="true"] {
-  background: rgba(94,106,210,0.12);
-  border-color: rgba(94,106,210,0.4);
-  color: var(--brand-violet-hi);
-}
+.action-list-items { display: flex; flex-direction: column; }
 
-.checklist-list { display: flex; flex-direction: column; }
-
-.checklist-item {
+.action-item {
   display: flex; align-items: center; gap: 8px;
   padding: 4px 4px;
   border-radius: 6px;
   min-height: 28px;
   transition: background 120ms ease;
 }
-.checklist-item:hover,
-.checklist-item:focus-within { background: var(--surface-02); }
+.action-item:hover,
+.action-item:focus-within { background: var(--surface-02); }
 
-.checklist-handle {
-  width: 14px; height: 14px;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: var(--fg4);
-  cursor: grab;
-  opacity: 0;
-  transition: opacity 120ms ease;
-  flex-shrink: 0;
-}
-.checklist-item:hover .checklist-handle,
-.checklist-item:focus-within .checklist-handle { opacity: 1; }
-.checklist-handle:active { cursor: grabbing; }
-
-.checklist-checkbox {
+.action-item-checkbox {
   appearance: none;
   -webkit-appearance: none;
   width: 14px; height: 14px;
@@ -774,37 +738,37 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   flex-shrink: 0;
   margin: 0;
 }
-.checklist-checkbox:checked {
+.action-item-checkbox:checked {
   background: var(--brand-indigo);
   border-color: var(--brand-indigo);
 }
-.checklist-checkbox:checked::after {
+.action-item-checkbox:checked::after {
   content: ""; position: absolute;
   left: 3px; top: 0px; width: 4px; height: 8px;
   border: solid #fff; border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
-.checklist-checkbox:disabled { cursor: default; opacity: 0.6; }
-.checklist-checkbox:focus-visible {
+.action-item-checkbox:disabled { cursor: default; opacity: 0.6; }
+.action-item-checkbox:focus-visible {
   outline: 1px solid var(--brand-indigo);
   outline-offset: 2px;
 }
 
-.checklist-text {
+.action-item-text {
   flex: 1; min-width: 0;
   font-size: 13px; color: var(--fg2);
   cursor: text;
   padding: 2px 4px; border-radius: 4px;
   word-break: break-word;
 }
-.checklist-text.done { text-decoration: line-through; color: var(--fg4); }
-.checklist-item.done { opacity: 0.7; }
-.checklist-text:focus-visible {
+.action-item-text.done { text-decoration: line-through; color: var(--fg4); }
+.action-item.done { opacity: 0.7; }
+.action-item-text:focus-visible {
   outline: 1px solid var(--brand-indigo);
   outline-offset: 1px;
 }
 
-.checklist-text-input {
+.action-item-text-input {
   flex: 1; min-width: 0;
   background: var(--bg-surface); color: var(--fg1);
   border: 1px solid var(--brand-indigo); border-radius: 4px;
@@ -814,7 +778,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   box-shadow: 0 0 0 3px rgba(94,106,210,0.15);
 }
 
-.checklist-del {
+.action-item-del {
   width: 20px; height: 20px;
   border: none; border-radius: 4px;
   background: transparent; color: var(--fg4);
@@ -824,17 +788,17 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   flex-shrink: 0;
   padding: 0;
 }
-.checklist-item:hover .checklist-del,
-.checklist-item:focus-within .checklist-del { opacity: 1; }
-.checklist-del:hover {
+.action-item:hover .action-item-del,
+.action-item:focus-within .action-item-del { opacity: 1; }
+.action-item-del:hover {
   color: var(--brand-violet-hi);
   background: var(--surface-04);
 }
 
-.checklist-add {
+.action-list-add {
   margin-top: 4px;
 }
-.checklist-add-input {
+.action-list-add-input {
   width: 100%;
   background: var(--surface-02); color: var(--fg1);
   border: 1px solid var(--border-1); border-radius: 6px;
@@ -842,18 +806,10 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   font: inherit; font-size: 13px;
   outline: none;
 }
-.checklist-add-input:focus {
+.action-list-add-input:focus {
   border-color: var(--brand-indigo);
   box-shadow: 0 0 0 3px rgba(94,106,210,0.15);
 }
-
-.card-checklist-indicator {
-  display: inline-flex; align-items: center; gap: 3px;
-  color: var(--fg4);
-  margin-right: 4px;
-  font-family: var(--font-mono); font-size: 10px;
-}
-.card-checklist-indicator.complete { color: var(--status-emerald); }
 
 @media (max-width: 640px) {
   .cd-grid { grid-template-columns: 1fr; }

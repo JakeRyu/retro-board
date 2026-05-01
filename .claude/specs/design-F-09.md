@@ -1,360 +1,258 @@
-# F-09 — Card checklist (in modal)
+# F-09 — Action list (repurposed from checklist)
 
-## 1. Feature recap
+> Replaces the original design-F-09.md (card checklist). The per-card
+> checklist is reframed as an action-items list: same structural shell,
+> renamed data model, two affordances removed, one discussion-mode signal added.
 
-Lives inside `.cd-checklist` (the F-07 main-column slot, second row).
-A single checklist per card lets users break work into checkable steps and see
-progress. Multi-checklist is explicitly cut from v1 per backlog. The card
-preview gains a small "X/Y" indicator next to the description glyph so the
-board reads progress without opening the card.
+---
 
-## 2. Surface
+## Goal
 
-`.cd-checklist` already ships from F-07 with the `<h3 class="cd-section-label">Checklist</h3>`
-heading. F-09 fills the body with three regions stacked top-to-bottom:
+Give the retro facilitator a place to capture commitments directly on the
+sticky being discussed, so every action item is tied to the observation that
+produced it and can flow into the Action column (F-23) at the end of the meeting.
 
-1. **Header row** — progress + "Hide completed" toggle (right-aligned).
-2. **Item list** — sortable, one row per `ChecklistItem`.
-3. **Add-item composer** — single-line input pinned at the bottom.
+---
+
+## Renames at a glance
+
+| Artifact | Before | After |
+|---|---|---|
+| Component file | `Checklist.tsx` | `ActionList.tsx` |
+| Component export | `Checklist` | `ActionList` |
+| Props type | `ChecklistProps` | `ActionListProps` |
+| Row sub-type | `ChecklistRowProps` / `ChecklistRowViewProps` | `ActionRowProps` / `ActionRowViewProps` |
+| Data type | `ChecklistItem` | `ActionItem` |
+| Card field | `Card.checklist?: ChecklistItem[]` | `Card.actionItems?: ActionItem[]` |
+| Store mutation | `addChecklistItem` | `addActionItem` |
+| Store mutation | `toggleChecklistItem` | `toggleActionItem` |
+| Store mutation | `editChecklistItem` | `editActionItem` |
+| Store mutation | `deleteChecklistItem` | `deleteActionItem` |
+| Store mutation | `reorderChecklist` | (removed — see DnD removal below) |
+
+**Component naming rationale.** "ActionList" is the plural noun that matches
+the section heading "Action items" and the field name `actionItems`. It
+parallels `Column`, `Card`, `Sidebar` — one word, noun. "ActionItemList" is
+accurate but verbose; the shorter form reads cleanly.
+
+---
+
+## Modal section relabel
+
+In `CardDetailsModal.tsx`, the `<section className="cd-checklist">` becomes
+`<section className="cd-action-items">`. The `<h3>` heading changes from
+`"Checklist"` to `"Action items"`. The `<Checklist>` import and JSX tag become
+`<ActionList>`, passing `items={card.actionItems ?? []}`. The section comment
+`{/* F-09 slot */}` stays; the description updates to match.
+
+The CSS rule `.cd-description, .cd-checklist { margin-bottom: 18px; }` in
+`globals.css` updates the second selector to `.cd-action-items`.
+
+---
+
+## Card preview cleanup
+
+`Card.tsx` currently computes `checklistTotal`, `checklistDone`, `hasChecklist`,
+`checklistComplete` from `card.checklist`. These locals and the `X / Y`
+progress badge inside `.vote-row` are removed.
+
+**Replaced with a presence-only indicator** (post-design adjustment, 2026-05-01
+on user feedback): a small checkmark icon appears in `.vote-row` when the card
+has any action items. No count, no progress — just a "this card has actions"
+signal so facilitators can scan the board without opening every card. The
+indicator mirrors `.card-desc-indicator`:
+
+```jsx
+{hasActionItems && (
+  <span
+    className="card-actions-indicator"
+    aria-label="Has action items"
+    title="This card has action items"
+  >
+    <Icon name="actions" size={12} />
+  </span>
+)}
+```
+
+A new `actions` icon (single checkmark glyph, `<path d="M4 12l5 5L20 6" />`) is
+added to `Primitives.tsx`. CSS reuses the desc-indicator rule via grouped
+selector. Vote-row reads, left to right:
 
 ```
-┌─ .cd-checklist ──────────────────────────────────────┐
-│  Checklist                                           │  ← cd-section-label (F-07)
-│  ┌─ .checklist-head ─────────────────────────────┐   │
-│  │  3 / 5 complete           [Hide completed ▢]  │   │
-│  └───────────────────────────────────────────────┘   │
-│  ┌─ .checklist-list (SortableContext) ───────────┐   │
-│  │  ⋮⋮  ☑  Wire the action ........... [×]       │   │  ← .checklist-item.done
-│  │  ⋮⋮  ☐  Hook up the modal .........            │   │  ← .checklist-item
-│  │  ⋮⋮  ☐  Polish empty state ........            │   │
-│  └───────────────────────────────────────────────┘   │
-│  ┌─ .checklist-add ──────────────────────────────┐   │
-│  │  + Add an item ▏                              │   │
-│  └───────────────────────────────────────────────┘   │
-└──────────────────────────────────────────────────────┘
+[.card-desc-indicator?]  [.card-actions-indicator?]  [.voters]  [VoteButton or vote count]
 ```
 
-## 3. States
+---
 
-| State | Visual |
-|---|---|
-| Empty (no items) | Header shows `0 / 0 complete`. "Hide completed" hidden (no use). Item list is absent. Composer visible with placeholder `Add an item`. |
-| Default | Items in author-defined order. Completed last only if the user reorders that way — sort is **manual**, not by `done`. |
-| Hover on item | Row gets `background: var(--surface-02)`. Drag handle (`.checklist-handle`) and delete button (`.checklist-del`) fade in via opacity 0→1 / 120ms. |
-| Item completed | `.checklist-text.done` — `text-decoration: line-through; color: var(--fg4)`. Wrapper opacity `0.7`. |
-| Item editing text | `.checklist-text` is replaced by an inline `<input>` with the same indigo glow as `.cd-description-input`. |
-| Hide completed on | Items with `done === true` are filtered out of the list render. Header progress unchanged. Toggle pill shows pressed state. |
-| Read-only (closed) | All controls disabled — checkboxes, drag handles, delete buttons, "Hide completed" toggle, composer input. Items still visible (struck-through retained). Cursor stays default. |
-| Drag in flight | Source row shows `.drag-ghost` (opacity 0.4); follower rendered in `<DragOverlay>` portal with the same `.drag-follower` treatment as cards (rotate 2deg, shadow). Drop indicator: a 2px `--brand-indigo` line between rows (reuse `.drop-indicator` class from F-06). |
+## DnD removal (post-design adjustment, 2026-05-01)
 
-## 4. Interaction spec
+User feedback flagged a bug in the per-item drag-reorder. Rather than fix the
+bug, the entire drag affordance is removed:
 
-### 4.1 Add an item
+- `DndContext`, `DragOverlay`, `SortableContext`, `useSortable`, sensors, and
+  the `<DragOverlay>` follower clone are deleted from `ActionList.tsx`.
+- The `dragEnabled` prop chain on `ActionRow`/`ActionRowView` is gone.
+- The `.action-item-handle` JSX (six-dot grab handle), its `aria-label="Drag to
+  reorder"`, and the `attributes`/`listeners`/`style` spreading are deleted.
+- The `reorderActionItems` store mutation is deleted entirely (zero callers).
+- The `.action-item-handle`, hover/focus-within reveal rules, and `:active`
+  cursor rules are removed from `globals.css`.
 
-- **Trigger**: focus the composer input (always mounted at the bottom). No
-  separate "+ Add" button — input itself is the affordance.
-- **Placeholder**: `Add an item`.
-- **Submit**: `Enter` creates the item via `addChecklistItem`, clears the
-  draft, **keeps focus** on the composer so users can rapid-fire adds.
-- **Discard**: blur with empty input does nothing — no item is created. Blur
-  with non-empty input does **not** auto-submit (matches the "add card"
-  composer pattern: explicit Enter creates, blur cancels). Esc clears the
-  draft and blurs.
-- **Validation**: trim. Reject empty after trim (no-op). No max length in v1
-  beyond input default — long items wrap.
+Items keep their insertion order; new items append. If reorder is desired
+later, redesign with a non-buggy implementation (e.g., explicit "move up" /
+"move down" buttons or modal-internal arrow keys).
 
-### 4.2 Toggle complete
+---
 
-- **Trigger**: click on `.checklist-checkbox` or press Space when the
-  checkbox is focused.
-- **Result**: dispatches `toggleChecklistItem`. Row immediately re-renders
-  with `.done` modifier. Header progress updates.
-- **Read-only**: checkbox is `disabled` per backlog AC ("all controls disabled
-  for closed boards"). Confirmed: even toggling is blocked when read-only.
+## "Hide completed" removal
 
-### 4.3 Edit item text
+The `hideCompleted` local state in `ActionList` (formerly `Checklist`) is
+removed. With it go:
 
-- **Trigger**: click on `.checklist-text`. Replaces the rendered span with an
-  `<input>` autofocused, cursor at end. **Or** press Enter when the row is
-  keyboard-focused.
-- **Save**: `Enter` or blur. Trims; if empty after trim, **discard the edit
-  and revert to saved value** (do not delete the item — explicit delete is the
-  trash button). If unchanged, no store write.
-- **Cancel**: `Esc` reverts and exits edit mode. Stops propagation so the
-  modal's Esc handler doesn't fire.
+- The `useMemo` that filtered `visibleItems` to in-progress only.
+- The `dragEnabled = !readOnly && !hideCompleted` guard (simplifies to
+  `dragEnabled = !readOnly`).
+- The `<div className="checklist-head">` block that rendered the progress
+  string and the toggle button.
+- The `.checklist-head`, `.checklist-progress`, `.checklist-toggle-hide`,
+  and `.checklist-toggle-hide[data-on="true"]` CSS rules.
 
-### 4.4 Delete item
+`visibleItems` collapses to `items` directly; `visibleIds` follows. The
+DnD context still wraps the list — reorder is unaffected.
 
-- **Trigger**: click `.checklist-del` (× icon, visible on row hover/focus).
-- **Result**: immediate `deleteChecklistItem` — no confirm. Symmetry with
-  card composer's "Add a card · cancel" pattern: per-item destructive ops on
-  small lists don't warrant a modal. Undo is owned by F-22.
-- **Keyboard**: while row is focused, `Backspace` (when not in edit mode)
-  also deletes. (Cheap; matches Trello.)
+The section now renders three regions: item list (when non-empty) → add
+composer (when not read-only). No header row.
 
-### 4.5 Reorder
+---
 
-- **Trigger**: drag on `.checklist-handle` (small grip icon, left of the
-  checkbox). Activation distance `6px`, matches F-06.
-- **Result**: dispatches `reorderChecklist(boardId, cardId, fromIndex, toIndex)`.
-- **Keyboard**: dnd-kit's KeyboardSensor handles `Space` to pick up,
-  arrow keys to move, `Space`/`Enter` to drop, `Esc` to cancel. We get this
-  free by reusing the same sensor configuration.
-- **Disabled**: drag disabled when `readOnly`, when the item is in text-edit
-  mode, and when "Hide completed" is on (filtered list breaks index math —
-  flag below in §10).
+## Discussion-mode signal
 
-### 4.6 Hide completed
+**Chosen affordance: a persistent indigo left-border on the section container
+while discussion mode is active.**
 
-- **Trigger**: toggle pill `.checklist-toggle-hide` in the header row, right
-  side. Same visual idiom as `.anon-toggle` (small pill, switch ball).
-- **State**: per-modal-session — local React state inside `Checklist`, resets
-  to `false` whenever the modal mounts. Not persisted, not on the card.
-- **Visibility**: pill is hidden when there are zero completed items (no use
-  for it).
-
-## 5. Card preview indicator
-
-When `card.checklist` exists and `length > 0`, show a small indicator in the
-existing `.vote-row` of `Card.tsx`, **left of** the `.card-desc-indicator`
-(so when both are present they read: checklist count, then description glyph,
-then voters/votes).
-
-- Class: `.card-checklist-indicator`. Same color/spacing conventions as
-  `.card-desc-indicator`.
-- Content: `<Icon name="checklist" size={12} />` glyph + small text
-  `"X/Y"` in `var(--font-mono)`, font-size 10px, color `--fg4`. When all items
-  done, color flips to `--status-emerald` (matches the "complete" feel).
-- `aria-label="X of Y checklist items complete"`, `title` similar.
-
-### Glyph
-
-`Icon` primitive does not yet ship a `checklist` glyph. Add `IconName = "checklist"`
-with path: `M9 5h11M9 12h11M9 19h11M4 5l1.5 1.5L8 4M4 12l1.5 1.5L8 11M4 19l1.5 1.5L8 18`
-(three rows with leading checkmarks). Justified addition: this is the canonical
-"checklist" affordance and is parallel to F-08's `description` glyph.
-
-## 6. Read-only
-
-When the parent modal passes `readOnly={true}`:
-
-- Checkboxes `disabled`. (Backlog spec says all controls disabled including
-  toggles — confirmed.)
-- Drag handle hidden (no `.checklist-handle` rendered when readOnly).
-- Delete button hidden.
-- "Hide completed" toggle hidden — there's nothing the user can do, so the
-  affordance is noise.
-- Composer hidden. Items render in current order, struck-through where done.
-- Header progress still shows.
-
-## 7. DnD architecture
-
-The parent `RetroApp` has its own `DndContext` for cards/columns. Nesting
-`DndContext` is officially discouraged (bug-prone). The card details modal
-sits in a portal-like overlay above the board and **does not share drag
-space** with it — there's no scenario where a user drags a checklist item
-out of the modal onto the board.
-
-**Decision**: open a **separate `DndContext`** scoped inside the `Checklist`
-component. Reuse the same `PointerSensor` (6px distance) and `KeyboardSensor`
-from F-06 so behavior is consistent. A single `SortableContext` keyed by
-`item.id` lists with `verticalListSortingStrategy`.
-
-- `DragOverlay` rendered inside the modal so the follower clones over the
-  modal content (z-index correct by default — overlay portal sits inside the
-  same stacking context as the modal).
-- No cross-context drops are possible because the modal overlay covers the
-  board pointer-events.
-
-## 8. CSS
-
-All new classes live in `app/globals.css` under a new `/* card checklist
-(F-09) */` section adjacent to `.cd-description-*`. No new tokens.
+When the card modal opens during an active discussion, `CardDetailsModal`
+receives (or derives) an `isDiscussion` boolean. When true, the
+`.cd-action-items` section element gains an `.discussion-active` modifier
+class.
 
 ```css
-.checklist { display: flex; flex-direction: column; gap: 6px; }
-
-.checklist-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 4px;
-  font-size: 11px; color: var(--fg4);
+.cd-action-items.discussion-active {
+  border-left: 2px solid rgba(94, 106, 210, 0.55);
+  padding-left: 10px;          /* compensate so text doesn't shift */
+  margin-left: -12px;          /* pull the border flush with the column gutter */
 }
-.checklist-progress { font-family: var(--font-mono); font-size: 11px; color: var(--fg3); }
-
-.checklist-toggle-hide {
-  /* Reuses the .anon-toggle visual pattern but smaller. */
-  display: inline-flex; align-items: center; gap: 6px;
-  height: 22px; padding: 0 8px;
-  border-radius: 999px;
-  border: 1px solid var(--border-1);
-  background: var(--surface-02);
-  color: var(--fg3);
-  font-size: 11px; font-weight: 510;
-  cursor: pointer;
-}
-.checklist-toggle-hide[data-on="true"] {
-  background: rgba(94,106,210,0.12);
-  border-color: rgba(94,106,210,0.4);
-  color: var(--brand-violet-hi);
-}
-
-.checklist-list { display: flex; flex-direction: column; }
-
-.checklist-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 4px 4px;
-  border-radius: 6px;
-  min-height: 28px;
-  transition: background 120ms ease;
-}
-.checklist-item:hover,
-.checklist-item:focus-within { background: var(--surface-02); }
-
-.checklist-handle {
-  width: 14px; height: 14px;
-  display: inline-flex; align-items: center; justify-content: center;
-  color: var(--fg4);
-  cursor: grab;
-  opacity: 0;
-  transition: opacity 120ms ease;
-}
-.checklist-item:hover .checklist-handle,
-.checklist-item:focus-within .checklist-handle { opacity: 1; }
-.checklist-handle:active { cursor: grabbing; }
-
-.checklist-checkbox {
-  /* Native checkbox, restyled to match the dark surface. */
-  appearance: none;
-  width: 14px; height: 14px;
-  border: 1px solid var(--border-2);
-  border-radius: 3px;
-  background: var(--surface-02);
-  cursor: pointer;
-  position: relative;
-  flex-shrink: 0;
-}
-.checklist-checkbox:checked {
-  background: var(--brand-indigo);
-  border-color: var(--brand-indigo);
-}
-.checklist-checkbox:checked::after {
-  content: ""; position: absolute;
-  left: 3px; top: 0px; width: 4px; height: 8px;
-  border: solid #fff; border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-.checklist-checkbox:disabled { cursor: default; opacity: 0.6; }
-
-.checklist-text {
-  flex: 1; min-width: 0;
-  font-size: 13px; color: var(--fg2);
-  cursor: text;
-  padding: 2px 4px; border-radius: 4px;
-  word-break: break-word;
-}
-.checklist-text.done { text-decoration: line-through; color: var(--fg4); }
-.checklist-item.done { opacity: 0.7; }
-
-.checklist-text-input {
-  flex: 1; min-width: 0;
-  background: var(--bg-surface); color: var(--fg1);
-  border: 1px solid var(--brand-indigo); border-radius: 4px;
-  padding: 2px 6px;
-  font: inherit; font-size: 13px;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(94,106,210,0.15);
-}
-
-.checklist-del {
-  /* Mirrors .col-icon-btn but smaller; visible on hover/focus. */
-  width: 20px; height: 20px;
-  border: none; border-radius: 4px;
-  background: transparent; color: var(--fg4);
-  cursor: pointer;
-  opacity: 0; transition: opacity 120ms ease;
-  display: inline-flex; align-items: center; justify-content: center;
-}
-.checklist-item:hover .checklist-del,
-.checklist-item:focus-within .checklist-del { opacity: 1; }
-.checklist-del:hover { color: var(--brand-violet-hi); background: var(--surface-04); }
-
-.checklist-add {
-  margin-top: 4px;
-}
-.checklist-add-input {
-  width: 100%;
-  background: var(--surface-02); color: var(--fg1);
-  border: 1px solid var(--border-1); border-radius: 6px;
-  padding: 6px 10px;
-  font: inherit; font-size: 13px;
-  outline: none;
-}
-.checklist-add-input:focus {
-  border-color: var(--brand-indigo);
-  box-shadow: 0 0 0 3px rgba(94,106,210,0.15);
-}
-
-/* Card preview indicator. Sits to the left of .card-desc-indicator in .vote-row. */
-.card-checklist-indicator {
-  display: inline-flex; align-items: center; gap: 3px;
-  color: var(--fg4);
-  margin-right: 4px;
-  font-family: var(--font-mono); font-size: 10px;
-}
-.card-checklist-indicator.complete { color: var(--status-emerald); }
 ```
 
-## 9. Animations
+No animation, no pulse. The border is calm and persistent — it reads as
+"this section is live right now." It is the same indigo family as focus
+rings and vote buttons elsewhere; no new color token is needed.
 
-- Item add: relies on React mount; no special pulse (matches description).
-- Item delete: instant (the row disappears). F-21 will add a 180ms collapse
-  along with the global card-delete polish.
-- Drag: `.drag-ghost` + `.drag-follower` reused from F-06 — no new
-  animation rules.
-- Reduced motion: inherits — no extra @media block needed.
+**Why this over the alternatives:**
+- A badge ("Capture as you discuss") adds words the facilitator has to read
+  mid-meeting. The border communicates state without demanding attention.
+- A focus pulse on modal open is a one-time signal; the facilitator may open
+  the modal long after discussion starts and would miss it.
+- A full-section glow is too flashy and clashes with the existing discussion-
+  mode column halo.
 
-## 10. Edge cases & PO flags
+The `isDiscussion` boolean can be passed as a prop from `RetroApp` via
+`CardDetailsModal` (the parent already has discussion-state access). If the
+architecture instead prefers a context, that is an implementation detail; the
+visual contract is the same.
 
-1. **Reorder while "Hide completed" is on.** With completed items filtered
-   from view, `fromIndex`/`toIndex` from dnd-kit refer to the *visible*
-   list, not the canonical one. Two clean options:
-   (a) disable drag while the toggle is on (simplest, ship this).
-   (b) translate visible indices to canonical via the saved id list before
-       calling the store action.
-   **Decision for v1: option (a).** Drag handle hidden when "Hide completed"
-   is on. This is the simpler, less surprising path — users who want to
-   reorder turn the filter off first.
+---
 
-2. **Item ids.** Use `"cli-" + Date.now().toString(36) + "-" + counter`
-   pattern (collision-safe within a session) — matches `addColumn` /
-   `addLabel` style in `store.ts`.
+## Microcopy / aria sweep
 
-3. **Persistence shape.** `Card.checklist` is already optional; empty
-   arrays should be normalized to `undefined` after a delete leaves zero
-   items (matches the labels/assignees pattern in the store) so persisted
-   payloads stay minimal.
+Strings to change:
 
-4. **Card preview indicator** placement: inside `.vote-row`, before
-   `.card-desc-indicator`. When both indicators present, no extra
-   separator — the existing `gap` on `.vote-row` (or natural inline
-   spacing) carries it.
+- `"Checklist"` (section heading in `CardDetailsModal`) → `"Action items"`
+- `"Add an item"` (composer placeholder) → `"Add an action item…"`
+- `aria-label="Add a checklist item"` (composer input) → `aria-label="Add an action item"`
+- `"Hide completed"` (toggle label, being removed) — delete
+- `"Showing in-progress"` (toggle label, being removed) — delete
+- `"X / Y complete"` (progress string, being removed with the `.checklist-head` block) — delete
+- `aria-label={`${checklistDone} of ${checklistTotal} checklist items complete`}` (card
+  indicator, being removed) — delete
+- `"Drag to reorder"` — gone with the drag handle (post-design adjustment).
+- `"Delete item"` (delete button aria-label in `ActionRowView`) — keep as-is.
+- Comment block `// --- Checklist (F-09) ---` in `store.ts` → `// --- Action items (F-09) ---`
+- JSX comment `{/* F-09 slot — owned by spec design-F-09.md */}` in `CardDetailsModal` — update
+  description to reference "Action items".
 
-5. **Discussion mode** — checklist still toggleable? Discussion mode for a
-   retro is a *facilitation* mode, not a read-only mode. F-07 lets the
-   modal open in discussion mode. Backlog F-09 only flags read-only
-   (closed-board) as the disablement axis. **Confirm with PO**: assume
-   discussion mode is *not* a disablement axis for checklist edits.
+---
 
-## 11. Microcopy
+## CSS classes to rename / remove
 
-| Place | Copy |
+**Rename:**
+
+| Before | After |
 |---|---|
-| Header progress | `X / Y complete` |
-| Hide-completed toggle (off) | `Hide completed` |
-| Hide-completed toggle (on) | `Showing in-progress` |
-| Composer placeholder | `Add an item` |
-| Card preview indicator title/aria | `X of Y checklist items complete` |
-| Empty list, no completed yet | (no extra copy — composer placeholder is enough) |
+| `.cd-checklist` | `.cd-action-items` |
+| `.checklist` | `.action-list` |
+| `.checklist-list` | `.action-list-items` |
+| `.checklist-item` | `.action-item` |
+| `.checklist-handle` | (removed — DnD gone) |
+| `.checklist-checkbox` | `.action-item-checkbox` |
+| `.checklist-text` | `.action-item-text` |
+| `.checklist-text-input` | `.action-item-text-input` |
+| `.checklist-del` | `.action-item-del` |
+| `.checklist-add` | `.action-list-add` |
+| `.checklist-add-input` | `.action-list-add-input` |
 
-No toasts on add/toggle/delete — too chatty, matches description silence.
+**Remove entirely:**
 
+- `.checklist-head` — gone with the progress/toggle header row.
+- `.checklist-progress` — gone with the header row.
+- `.checklist-toggle-hide` — gone with the hide-completed toggle.
+- `.checklist-toggle-hide:hover` — same.
+- `.checklist-toggle-hide[data-on="true"]` — same.
+- `.card-checklist-indicator` — gone with the card-preview badge.
+- `.card-checklist-indicator.complete` — same.
+
+**Add:**
+
+- `.cd-action-items.discussion-active` — the indigo left-border signal
+  (see Discussion-mode signal section above).
+- `.card-actions-indicator` — joined to `.card-desc-indicator` via grouped
+  selector; same muted color and right-margin (post-design adjustment).
+
+The CSS section comment `/* card checklist (F-09) */` in `globals.css`
+becomes `/* action list (F-09) */`.
+
+---
+
+## localStorage migration note
+
+F-09 ships the rename in code only. Freshly created retros (after this
+commit) persist `actionItems` on cards. Existing localStorage payloads
+carry the old `checklist` key; those cards will have `actionItems: undefined`
+until the migration runs.
+
+**The `checklist` → `actionItems` rename in persisted data is deferred to
+F-MIGRATE.** That feature bumps `SCHEMA_VERSION` to 2 and runs a migration
+function that walks every card and moves `card.checklist` to
+`card.actionItems`. F-09 must not add migration logic — doing so would
+partially pre-empt F-MIGRATE and create a split-migration hazard where some
+users get migrated by F-09 and others by F-MIGRATE depending on deploy timing.
+
+The developer should document this gap in the commit message. Users who
+open an existing retro between the F-09 deploy and the F-MIGRATE deploy will
+see their action-items section temporarily empty; they can re-enter any items.
+This window should be short because F-MIGRATE is the next item in the build
+sequence (see backlog §Build sequence step 9).
+
+---
+
+## Out of scope
+
+- Per-item assignment to a team member — deferred to backend integration.
+- Per-item due date — deferred to backend integration.
+- Multiple action lists per card — explicitly cut from v1.
+- F-MIGRATE migration logic — that spec owns the `checklist` → `actionItems`
+  data rename in localStorage.
+- F-23 (Finish Discussion → Action column) — this spec is only the per-card
+  list. F-23 reads from `card.actionItems` and is not designed here.
+- Changing item interaction behavior (toggle, edit, reorder, delete) — the
+  mechanics are unchanged from the original F-09 checklist; only naming and
+  two removed affordances differ.

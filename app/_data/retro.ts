@@ -5,7 +5,7 @@ export type User = {
   color: string;
 };
 
-export type ChecklistItem = {
+export type ActionItem = {
   id: string;
   text: string;
   done: boolean;
@@ -17,7 +17,7 @@ export type Card = {
   authorId: string;
   voters: string[];
   description?: string;
-  checklist?: ChecklistItem[];
+  actionItems?: ActionItem[];
   archivedAt?: string;
   /** Column the card was in at archive time. Used by `unarchiveCard` to send
    *  it home; falls back to first column if the column is gone. */

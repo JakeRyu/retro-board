@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Avatar, Icon } from "./Primitives";
-import { Checklist } from "./Checklist";
+import { ActionList } from "./ActionList";
 import { formatRelativeTime } from "../_lib/relativeTime";
 import type { Card, User } from "../_data/retro";
 
@@ -15,6 +15,8 @@ type CardDetailsModalProps = {
   boardId: string;
   anonymous: boolean;
   readOnly: boolean;
+  /** True while discussion mode is active — highlights the action-items section. */
+  isDiscussion: boolean;
   onClose: () => void;
   onSaveTitle: (cardId: string, title: string) => void;
   onSaveDescription: (cardId: string, description: string) => void;
@@ -37,6 +39,7 @@ export function CardDetailsModal({
   boardId,
   anonymous,
   readOnly,
+  isDiscussion,
   onClose,
   onSaveTitle,
   onSaveDescription,
@@ -178,13 +181,13 @@ export function CardDetailsModal({
               />
             </section>
 
-            {/* F-09 slot — owned by spec design-F-09.md */}
-            <section className="cd-checklist">
-              <h3 className="cd-section-label">Checklist</h3>
-              <Checklist
+            {/* F-09 slot — action items captured during discussion */}
+            <section className={"cd-action-items" + (isDiscussion ? " discussion-active" : "")}>
+              <h3 className="cd-section-label">Action items</h3>
+              <ActionList
                 boardId={boardId}
                 cardId={card.id}
-                items={card.checklist ?? []}
+                items={card.actionItems ?? []}
                 readOnly={readOnly}
               />
             </section>

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type {
   Board,
   Card,
-  ChecklistItem,
+  ActionItem,
   Column,
 } from "./retro";
 import { BOARD_COLORS, SEED_BOARD, SEED_BOARDS } from "./retro";
@@ -536,39 +536,39 @@ export const storeActions = {
     });
   },
 
-  // --- Checklist (F-09) ---------------------------------------------------
+  // --- Action items (F-09) ---------------------------------------------------
 
   // Append a new item; returns the generated id so the caller can focus or
   // animate it. Empty/whitespace text is rejected (no-op, returns "").
-  addChecklistItem(boardId: string, cardId: string, text: string): string {
+  addActionItem(boardId: string, cardId: string, text: string): string {
     const trimmed = text.trim();
     if (!trimmed) return "";
-    const id = "cli-" + Date.now().toString(36) + "-" + Math.floor(Math.random() * 1000).toString(36);
-    const item: ChecklistItem = { id, text: trimmed, done: false };
+    const id = "ai-" + Date.now().toString(36) + "-" + Math.floor(Math.random() * 1000).toString(36);
+    const item: ActionItem = { id, text: trimmed, done: false };
     updateBoardById(boardId, (b) => ({
       ...b,
       columns: b.columns.map((c) => ({
         ...c,
         cards: c.cards.map((card) => {
           if (card.id !== cardId) return card;
-          const next = [...(card.checklist ?? []), item];
-          return { ...card, checklist: next };
+          const next = [...(card.actionItems ?? []), item];
+          return { ...card, actionItems: next };
         }),
       })),
     }));
     return id;
   },
 
-  toggleChecklistItem(boardId: string, cardId: string, itemId: string) {
+  toggleActionItem(boardId: string, cardId: string, itemId: string) {
     updateBoardById(boardId, (b) => ({
       ...b,
       columns: b.columns.map((c) => ({
         ...c,
         cards: c.cards.map((card) => {
-          if (card.id !== cardId || !card.checklist) return card;
+          if (card.id !== cardId || !card.actionItems) return card;
           return {
             ...card,
-            checklist: card.checklist.map((it) =>
+            actionItems: card.actionItems.map((it) =>
               it.id === itemId ? { ...it, done: !it.done } : it,
             ),
           };
@@ -580,7 +580,7 @@ export const storeActions = {
   // Trimmed empty text is rejected so the caller's revert path keeps the
   // prior value intact. The component layer also short-circuits, but
   // defending here keeps storage clean.
-  editChecklistItem(boardId: string, cardId: string, itemId: string, text: string) {
+  editActionItem(boardId: string, cardId: string, itemId: string, text: string) {
     const trimmed = text.trim();
     if (!trimmed) return;
     updateBoardById(boardId, (b) => ({
@@ -588,10 +588,10 @@ export const storeActions = {
       columns: b.columns.map((c) => ({
         ...c,
         cards: c.cards.map((card) => {
-          if (card.id !== cardId || !card.checklist) return card;
+          if (card.id !== cardId || !card.actionItems) return card;
           return {
             ...card,
-            checklist: card.checklist.map((it) =>
+            actionItems: card.actionItems.map((it) =>
               it.id === itemId ? { ...it, text: trimmed } : it,
             ),
           };
@@ -601,41 +601,16 @@ export const storeActions = {
   },
 
   // Drops the item; if the list empties, drops the field entirely so the
-  // persisted shape stays minimal (matches labels/assignees pattern).
-  deleteChecklistItem(boardId: string, cardId: string, itemId: string) {
+  // persisted shape stays minimal.
+  deleteActionItem(boardId: string, cardId: string, itemId: string) {
     updateBoardById(boardId, (b) => ({
       ...b,
       columns: b.columns.map((c) => ({
         ...c,
         cards: c.cards.map((card) => {
-          if (card.id !== cardId || !card.checklist) return card;
-          const next = card.checklist.filter((it) => it.id !== itemId);
-          return { ...card, checklist: next.length ? next : undefined };
-        }),
-      })),
-    }));
-  },
-
-  reorderChecklist(
-    boardId: string,
-    cardId: string,
-    fromIndex: number,
-    toIndex: number,
-  ) {
-    updateBoardById(boardId, (b) => ({
-      ...b,
-      columns: b.columns.map((c) => ({
-        ...c,
-        cards: c.cards.map((card) => {
-          if (card.id !== cardId || !card.checklist) return card;
-          const list = card.checklist;
-          if (fromIndex < 0 || fromIndex >= list.length) return card;
-          const next = list.slice();
-          const [moved] = next.splice(fromIndex, 1);
-          const target = Math.max(0, Math.min(toIndex, next.length));
-          if (target === fromIndex) return card;
-          next.splice(target, 0, moved);
-          return { ...card, checklist: next };
+          if (card.id !== cardId || !card.actionItems) return card;
+          const next = card.actionItems.filter((it) => it.id !== itemId);
+          return { ...card, actionItems: next.length ? next : undefined };
         }),
       })),
     }));
