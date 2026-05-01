@@ -205,10 +205,67 @@ export function CardDetailsModal({
                 onRequestDeleteForever={onRequestDeleteForever}
               />
             </section>
+
+            {card.voters.length > 0 && (
+              <section className="cd-side-voters">
+                <h3 className="cd-section-label">Voted by</h3>
+                <VotersList
+                  voterIds={card.voters}
+                  users={users}
+                  anonymous={anonymous}
+                />
+              </section>
+            )}
           </aside>
         </div>
       </div>
     </div>
+  );
+}
+
+// Sidebar voters list — readable rows of avatar + name. Hidden when the
+// card has no votes. In anonymous mode, names mask to "?" matching the
+// header avatar pile's existing pattern.
+function VotersList({
+  voterIds,
+  users,
+  anonymous,
+}: {
+  voterIds: string[];
+  users: User[];
+  anonymous: boolean;
+}) {
+  return (
+    <ul className="cd-voters-list">
+      {voterIds.map((id, i) => {
+        const u = users.find((x) => x.id === id);
+        if (!u) return null;
+        return (
+          <li key={id + i} className="cd-voters-row">
+            {anonymous ? (
+              <span
+                className="avatar"
+                style={{
+                  background: "var(--surface-08)",
+                  color: "var(--fg3)",
+                  fontSize: 8,
+                  width: 18,
+                  height: 18,
+                }}
+                aria-hidden="true"
+              >
+                ?
+              </span>
+            ) : (
+              <Avatar user={u} size={18} />
+            )}
+            <span className="cd-voters-name">
+              {anonymous ? "Anonymous" : u.name}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

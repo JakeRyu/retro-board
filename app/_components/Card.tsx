@@ -312,7 +312,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
               aria-label="Has action items"
               title="This card has action items"
             >
-              <Icon name="actions" size={12} />
+              <Icon name="actions" size={14} strokeWidth={2} />
             </span>
           )}
           <Voters voterIds={card.voters} users={users} anonymous={anonymous} />
