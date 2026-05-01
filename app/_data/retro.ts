@@ -29,7 +29,6 @@ export type Card = {
   dueDate?: string;
   dueComplete?: boolean;
   labels?: string[];
-  assigneeIds?: string[];
   archivedAt?: string;
   /** Column the card was in at archive time. Used by `unarchiveCard` to send
    *  it home; falls back to first column if the column is gone. */

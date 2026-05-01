@@ -5,7 +5,6 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Avatar, Icon } from "./Primitives";
 import { LabelStripes } from "./Labels";
-import { AssigneeAvatars } from "./Members";
 import { DueDatePill } from "./DueDate";
 import type { Label, RetroCard, User } from "../_data/retro";
 
@@ -292,14 +291,6 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
         // mounts a fresh one, which re-runs the `body-fade-in` keyframe in CSS.
         <div key={card.body} className="card-body">{card.body}</div>
       )}
-
-      {/* F-12: assignee pile sits above the foot, right-aligned, so it
-          doesn't collide with the voter pile in .vote-row. */}
-      <AssigneeAvatars
-        users={users}
-        assigneeIds={card.assigneeIds}
-        anonymous={anonymous}
-      />
 
       <div className="card-foot">
         {anonymous ? (

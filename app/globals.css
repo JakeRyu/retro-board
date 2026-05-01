@@ -499,7 +499,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 
 /* ---------- card details modal (F-07 shell) ----------
    Slot wrappers (.cd-description, .cd-checklist,
-   .cd-side-due, .cd-side-labels, .cd-side-members, .cd-side-archive)
+   .cd-side-due, .cd-side-labels, .cd-side-archive)
    are owned by F-08–F-14. F-07 only ships their layout/spacing. */
 .modal.modal-card-details {
   position: relative;
@@ -540,7 +540,7 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 
 .cd-description, .cd-checklist { margin-bottom: 18px; }
 .cd-main > section:last-child { margin-bottom: 0; }
-.cd-side-due, .cd-side-labels, .cd-side-members, .cd-side-archive {
+.cd-side-due, .cd-side-labels, .cd-side-archive {
   margin-bottom: 14px;
 }
 .cd-side > section:last-child { margin-bottom: 0; }
@@ -1022,70 +1022,6 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   display: flex; gap: 6px; justify-content: flex-end;
 }
 .label-create-actions .btn { height: 26px; padding: 0 10px; font-size: 12px; }
-
-/* ---------- card members (F-12) ---------- */
-/* Assignee pile on the card preview — sits above .card-foot, right-aligned,
-   so the voter pile in .vote-row keeps its lane on the bottom. */
-.assignees {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin-bottom: 6px;
-  pointer-events: none;
-}
-.assignees .avatar {
-  width: 18px; height: 18px; font-size: 9px;
-  margin-left: -4px;
-  border: 1.5px solid var(--bg-marketing);
-}
-.assignees .avatar:first-child { margin-left: 0; }
-.assignees-more {
-  width: 20px; height: 20px; border-radius: 50%;
-  background: var(--surface-08);
-  margin-left: -4px;
-  border: 1.5px solid var(--bg-marketing);
-  display: inline-flex; align-items: center; justify-content: center;
-  font-family: var(--font-mono); font-size: 9px; color: var(--fg3);
-}
-
-/* Picker — slotted into .cd-side-members in the card details modal. */
-.member-picker {
-  display: flex; flex-direction: column;
-  gap: 2px;
-}
-.member-row {
-  display: flex; align-items: center;
-  gap: 8px;
-  padding: 4px 6px;
-  border-radius: 4px;
-  cursor: pointer;
-  min-height: 28px;
-  transition: background 120ms ease;
-}
-.member-row:hover { background: var(--surface-02); }
-.member-row:has(.member-checkbox:disabled) {
-  cursor: default;
-}
-.member-row:has(.member-checkbox:disabled):hover {
-  background: transparent;
-}
-.member-checkbox {
-  width: 14px; height: 14px;
-  margin: 0;
-  accent-color: var(--brand-indigo);
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.member-checkbox:disabled { cursor: not-allowed; opacity: 0.5; }
-.member-name {
-  flex: 1;
-  min-width: 0;
-  font-size: 12px;
-  color: var(--fg2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 /* ---------- card due date (F-10) ---------- */
 /* Pill — sits inside `.card-foot > .vote-row`, left of the description
