@@ -20,8 +20,6 @@ export type Card = {
   voters: string[];
   description?: string;
   checklist?: ChecklistItem[];
-  dueDate?: string;
-  dueComplete?: boolean;
   archivedAt?: string;
   /** Column the card was in at archive time. Used by `unarchiveCard` to send
    *  it home; falls back to first column if the column is gone. */

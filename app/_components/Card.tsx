@@ -4,7 +4,6 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Avatar, Icon } from "./Primitives";
-import { DueDatePill } from "./DueDate";
 import type { RetroCard, User } from "../_data/retro";
 
 type VotersProps = {
@@ -301,7 +300,6 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
           </span>
         ) : null}
         <div className="vote-row">
-          <DueDatePill card={card} />
           {hasChecklist && (
             <span
               className={

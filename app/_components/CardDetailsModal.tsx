@@ -3,7 +3,6 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Avatar, Icon } from "./Primitives";
 import { Checklist } from "./Checklist";
-import { DueDateField } from "./DueDate";
 import { formatRelativeTime } from "../_lib/relativeTime";
 import type { Card, User } from "../_data/retro";
 
@@ -195,18 +194,6 @@ export function CardDetailsModal({
           </div>
 
           <aside className="cd-side">
-            {/* F-10 slot — owned by spec design-F-10.md */}
-            <section className="cd-side-due">
-              <h3 className="cd-section-label">Due date</h3>
-              <DueDateField
-                boardId={boardId}
-                cardId={card.id}
-                dueDate={card.dueDate}
-                dueComplete={card.dueComplete ?? false}
-                readOnly={readOnly}
-              />
-            </section>
-
             {/* F-14 slot — owned by spec design-F-14.md */}
             <section className="cd-side-archive">
               <ArchiveSlot
