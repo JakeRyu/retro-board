@@ -74,9 +74,6 @@ export type CardProps = {
   readOnly: boolean;
   /** Whether DnD is active for this card. */
   dndEnabled: boolean;
-  /** F-15: card doesn't match the active filter. Visual-only — the card
-   *  stays interactive (open modal, vote) but renders at 0.3 opacity. */
-  dimmed?: boolean;
   onVote: (cardId: string) => void;
   onSave: (cardId: string, body: string) => void;
   /** Soft-archive (F-14). Replaces the previous hard `onDelete`; "Delete
@@ -105,8 +102,6 @@ type CardViewProps = {
   isDragging?: boolean;
   isFollower?: boolean;
   dndEnabled: boolean;
-  /** See CardProps.dimmed — same prop, threaded through CardView. */
-  dimmed?: boolean;
   onVote: (cardId: string) => void;
   onSave: (cardId: string, body: string) => void;
   onArchive: (cardId: string) => void;
@@ -133,7 +128,6 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
     isDragging,
     isFollower,
     dndEnabled,
-    dimmed,
     onVote,
     onSave,
     onArchive,
@@ -267,8 +261,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
         (isTopVoted ? " top-voted" : "") +
         (isNew ? " new" : "") +
         (isDragging ? " drag-ghost" : "") +
-        (isFollower ? " drag-follower" : "") +
-        (dimmed ? " dimmed" : "")
+        (isFollower ? " drag-follower" : "")
       }
       {...(attributes ?? {})}
       {...(listeners ?? {})}
@@ -428,7 +421,6 @@ export function Card({
   isNew,
   readOnly,
   dndEnabled,
-  dimmed,
   onVote,
   onSave,
   onArchive,
@@ -457,7 +449,6 @@ export function Card({
       isNew={isNew}
       readOnly={readOnly}
       dndEnabled={dndEnabled}
-      dimmed={dimmed}
       isDragging={isDragging}
       onVote={onVote}
       onSave={onSave}

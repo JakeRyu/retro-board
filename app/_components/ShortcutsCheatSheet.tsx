@@ -35,7 +35,6 @@ const GROUPS: Group[] = [
     heading: "On a board",
     rows: [
       { keys: ["c"], description: "Add a card to the first column" },
-      { keys: ["/"], description: "Open filter" },
     ],
   },
   {

@@ -9,7 +9,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Card } from "./Card";
 import { Icon } from "./Primitives";
-import type { Column as ColumnType, Label, User, Card as CardT } from "../_data/retro";
+import type { Column as ColumnType, Label, User } from "../_data/retro";
 import { useAddCardRequest } from "../_hooks/useAddCardRequest";
 
 const MAX_TITLE = 60;
@@ -32,14 +32,6 @@ export type ColumnProps = {
   newIds: Set<string>;
   /** Whether DnD is enabled for cards / column body. */
   dndEnabled: boolean;
-  /** F-15: returns true when the card matches the active filter. When the
-   *  filter is inactive, callers pass a function that always returns true
-   *  (or omit and the column treats every card as a match). */
-  cardMatches?: (card: CardT) => boolean;
-  /** F-15: when true, non-matching cards are removed from the rendered
-   *  list entirely. When false (default), they render with `dimmed` class
-   *  but stay in layout. */
-  hideNonMatching?: boolean;
   onVote: (cardId: string) => void;
   onAdd: (colId: string, body: string) => void;
   onSaveCard: (cardId: string, body: string) => void;
@@ -109,8 +101,6 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
       autoEditTitle,
       newIds,
       dndEnabled,
-      cardMatches,
-      hideNonMatching,
       onVote,
       onAdd,
       onSaveCard,
@@ -223,17 +213,9 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
       setEditingTitle(false);
     };
 
-    const orderedCards = sortByVotes
+    const cards = sortByVotes
       ? [...col.cards].sort((a, b) => b.voters.length - a.voters.length)
       : col.cards;
-    // F-15: when "Hide non-matching" is on, exclude non-matchers from the
-    // rendered list so DnD never resolves their ids and the column shape
-    // collapses around what remains. Otherwise render all and let the
-    // `dimmed` class handle the visual de-emphasis.
-    const cards =
-      hideNonMatching && cardMatches
-        ? orderedCards.filter((c) => cardMatches(c))
-        : orderedCards;
     const topId = cards.length && cards[0].voters.length > 0 ? cards[0].id : null;
 
     const headTabIndex =
@@ -420,7 +402,6 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
                   isNew={newIds.has(c.id)}
                   readOnly={readOnly}
                   dndEnabled={dndEnabled}
-                  dimmed={cardMatches ? !cardMatches(c) : false}
                   onVote={onVote}
                   onSave={onSaveCard}
                   onArchive={onArchiveCard}
