@@ -696,23 +696,33 @@ button {
   border-bottom: 1px solid var(--border-subtle);
   margin-bottom: 8px;
 }
-.col-desc.collapsed {
-  display: none;
-}
-.col-desc-toggle {
-  font-size: 10px;
+/* F-25: empty-state placeholder. Muted italic prompt that becomes editable
+   on click; mirrors CardDetailsModal's `cd-description-render.empty` tone. */
+.col-desc.empty {
   color: var(--fg4);
-  padding: 2px 6px;
-  margin: 0 0 8px;
-  border-radius: 3px;
-  font-weight: 510;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  align-self: flex-start;
+  font-style: italic;
+  cursor: pointer;
+  border-bottom-color: transparent;
 }
-.col-desc-toggle:hover {
-  color: var(--fg2);
-  background: var(--surface-04);
+.col-desc.empty:hover {
+  color: var(--fg3);
+}
+/* F-25: inline edit input for the column description. Mirrors the
+   `.col-title-input` pattern — `font: inherit` resets browser-default input
+   sizing, then explicit 11px matches the static `.col-desc`. Tight padding
+   (1px 5px) prevents the box from growing taller than the static row. */
+.col-desc-input {
+  width: calc(100% - 12px);
+  margin: 0 6px 8px;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg1);
+  background: var(--bg-surface);
+  border: 1px solid var(--brand-indigo);
+  border-radius: 4px;
+  padding: 1px 5px;
+  outline: none;
 }
 
 .col-cards {

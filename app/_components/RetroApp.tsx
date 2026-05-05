@@ -235,6 +235,10 @@ function RetroAppLoaded({ board }: { board: Board }) {
     storeActions.renameColumn(board.id, colId, title);
   };
 
+  const onSaveColumnDesc = (colId: string, desc: string) => {
+    storeActions.setColumnDesc(board.id, colId, desc);
+  };
+
   const onRequestDeleteColumn = (colId: string) => {
     const target = columns.find((c) => c.id === colId);
     if (!target) return;
@@ -796,6 +800,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
         onSaveCard={() => {}}
         onArchiveCard={() => {}}
         onRenameColumn={() => {}}
+        onSaveColumnDesc={() => {}}
         onRequestDeleteColumn={() => {}}
       />
     );
@@ -1031,6 +1036,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
                     onSaveCard={onSaveCard}
                     onArchiveCard={onArchiveCard}
                     onRenameColumn={onRenameColumn}
+                    onSaveColumnDesc={onSaveColumnDesc}
                     onRequestDeleteColumn={onRequestDeleteColumn}
                     onAutoEditConsumed={() => setAutoEditColId(null)}
                     onCardKeyboardMove={handleCardKeyboardMove}

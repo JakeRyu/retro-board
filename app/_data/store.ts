@@ -229,10 +229,30 @@ function updateBoardById(id: string, updater: (b: Board) => Board) {
 
 function defaultColumns(): Column[] {
   return [
-    { id: "c-went-well", title: "What went well", desc: "", cards: [] },
-    { id: "c-didnt", title: "What didn't", desc: "", cards: [] },
-    { id: "c-try", title: "Try next time", desc: "", cards: [] },
-    { id: "c-shout", title: "Shout-outs", desc: "", cards: [] },
+    {
+      id: "c-went-well",
+      title: "What went well",
+      desc: "Wins worth celebrating.",
+      cards: [],
+    },
+    {
+      id: "c-didnt",
+      title: "What didn't",
+      desc: "Friction worth fixing.",
+      cards: [],
+    },
+    {
+      id: "c-try",
+      title: "Try next time",
+      desc: "Concrete experiments to try.",
+      cards: [],
+    },
+    {
+      id: "c-shout",
+      title: "Shout-outs",
+      desc: "Who deserves a thank-you?",
+      cards: [],
+    },
   ];
 }
 
@@ -506,6 +526,19 @@ export const storeActions = {
     updateBoardById(boardId, (b) => ({
       ...b,
       columns: b.columns.map((c) => (c.id === columnId ? { ...c, title } : c)),
+    }));
+  },
+
+  // F-25: edit a column's description. Trims trailing whitespace and slices
+  // to 200 chars defensively. Empty string is allowed — that's how the user
+  // clears desc back to the placeholder state.
+  setColumnDesc(boardId: string, columnId: string, desc: string) {
+    const trimmed = desc.replace(/\s+$/, "").slice(0, 200);
+    updateBoardById(boardId, (b) => ({
+      ...b,
+      columns: b.columns.map((c) =>
+        c.id === columnId ? { ...c, desc: trimmed } : c,
+      ),
     }));
   },
 

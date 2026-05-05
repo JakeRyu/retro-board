@@ -13,6 +13,7 @@ import type { Card as CardType, Column as ColumnType, User } from "../_data/retr
 import { useAddCardRequest } from "../_hooks/useAddCardRequest";
 
 const MAX_TITLE = 60;
+const MAX_DESC = 200;
 
 export type ColumnProps = {
   col: ColumnType;
@@ -37,6 +38,8 @@ export type ColumnProps = {
   onSaveCard: (cardId: string, body: string) => void;
   onArchiveCard: (cardId: string) => void;
   onRenameColumn: (colId: string, title: string) => void;
+  /** F-25: persist a column description edit. Empty string clears the desc. */
+  onSaveColumnDesc: (colId: string, desc: string) => void;
   onRequestDeleteColumn: (colId: string) => void;
   onAutoEditConsumed?: () => void;
   onCardKeyboardMove?: (
@@ -111,6 +114,7 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
       onSaveCard,
       onArchiveCard,
       onRenameColumn,
+      onSaveColumnDesc,
       onRequestDeleteColumn,
       onAutoEditConsumed,
       onCardKeyboardMove,
@@ -129,11 +133,13 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
   ) {
     const [adding, setAdding] = useState(false);
     const [text, setText] = useState("");
-    const [descOpen, setDescOpen] = useState(true);
     const [titleDraft, setTitleDraft] = useState(col.title);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [editingDesc, setEditingDesc] = useState(false);
+    const [descDraft, setDescDraft] = useState(col.desc);
     const inputRef = useRef<HTMLTextAreaElement | null>(null);
     const titleInputRef = useRef<HTMLInputElement | null>(null);
+    const descInputRef = useRef<HTMLInputElement | null>(null);
     const headRef = useRef<HTMLDivElement | null>(null);
     // F-21: column add fade. Drop the class after the keyframe finishes so the
     // node returns to default styling — no lasting effect. Skipped for the
@@ -146,6 +152,7 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
     }, [isMounting]);
 
     const titleEditable = canEdit && !readOnly && !discussion && !isActionCol;
+    const descEditable = titleEditable;
 
     useEffect(() => {
       if (adding && inputRef.current) inputRef.current.focus();
@@ -174,6 +181,13 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
         titleInputRef.current.select();
       }
     }, [editingTitle]);
+
+    useEffect(() => {
+      if (editingDesc && descInputRef.current) {
+        descInputRef.current.focus();
+        descInputRef.current.select();
+      }
+    }, [editingDesc]);
 
     useEffect(() => {
       if (!menuOpen) return;
@@ -217,6 +231,23 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
     const cancelRename = () => {
       setTitleDraft(col.title);
       setEditingTitle(false);
+    };
+
+    const beginEditDesc = () => {
+      if (!descEditable) return;
+      setDescDraft(col.desc);
+      setEditingDesc(true);
+    };
+
+    const commitEditDesc = () => {
+      const trimmed = descDraft.replace(/\s+$/, "").slice(0, MAX_DESC);
+      if (trimmed !== col.desc) onSaveColumnDesc(col.id, trimmed);
+      setEditingDesc(false);
+    };
+
+    const cancelEditDesc = () => {
+      setDescDraft(col.desc);
+      setEditingDesc(false);
     };
 
     const cards = sortByVotes
@@ -353,12 +384,51 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
           )}
         </div>
 
-        {descOpen && col.desc && <div className="col-desc">{col.desc}</div>}
-        {col.desc && (
-          <button className="col-desc-toggle" onClick={() => setDescOpen((o) => !o)}>
-            {descOpen ? "hide description" : "show description"}
-          </button>
-        )}
+        {editingDesc ? (
+          <input
+            ref={descInputRef}
+            className="col-desc-input"
+            value={descDraft}
+            maxLength={MAX_DESC}
+            placeholder="Add description…"
+            onChange={(e) => setDescDraft(e.target.value)}
+            onPointerDown={(e) => e.stopPropagation()}
+            onBlur={commitEditDesc}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitEditDesc();
+              }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                cancelEditDesc();
+              }
+            }}
+          />
+        ) : col.desc ? (
+          <div
+            className="col-desc"
+            style={descEditable ? { cursor: "text" } : undefined}
+            onClick={descEditable ? beginEditDesc : undefined}
+          >
+            {col.desc}
+          </div>
+        ) : descEditable ? (
+          <div
+            className="col-desc empty"
+            role="button"
+            tabIndex={0}
+            onClick={beginEditDesc}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                beginEditDesc();
+              }
+            }}
+          >
+            Add description…
+          </div>
+        ) : null}
 
         {!readOnly &&
           (adding ? (
