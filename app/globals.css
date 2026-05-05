@@ -119,6 +119,8 @@ button {
   font-size: 13px;
   font-weight: 510;
   letter-spacing: -0.1px;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition:
     background 150ms ease,
     color 150ms ease,
@@ -236,11 +238,26 @@ button {
 }
 
 .workspace {
+  position: relative;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.workspace-trigger {
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 10px;
+  width: 100%;
+  min-width: 0;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+}
+.workspace-trigger:hover {
+  background: var(--surface-02);
 }
 .workspace .ws-mark {
   width: 22px;
@@ -253,12 +270,61 @@ button {
   color: #fff;
   font-size: 10px;
   font-weight: 600;
+  flex-shrink: 0;
 }
 .workspace .ws-name {
   font-size: 13px;
   font-weight: 590;
   color: var(--fg1);
   letter-spacing: -0.1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.workspace .ws-chevron {
+  margin-left: auto;
+  color: var(--fg4);
+  display: inline-flex;
+  flex-shrink: 0;
+  transition: transform 120ms ease;
+}
+.workspace.open .ws-chevron {
+  transform: rotate(180deg);
+}
+/* Anchored under the trigger row. Doubled selector beats `.kebab-menu`
+   (declared later in this file) without resorting to !important. */
+.kebab-menu.workspace-menu {
+  position: absolute;
+  top: calc(100% - 4px);
+  left: 8px;
+  right: 8px;
+  bottom: auto;
+  min-width: 0;
+  z-index: 30;
+}
+.workspace-menu .menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+}
+.workspace-menu .menu-item-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.workspace-menu .menu-item-check {
+  margin-left: auto;
+  color: var(--fg2);
+  font-size: 12px;
 }
 
 .side-section {

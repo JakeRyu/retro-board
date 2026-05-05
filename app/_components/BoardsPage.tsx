@@ -42,13 +42,16 @@ function partition(boards: Board[]): Record<SectionKey, Board[]> {
 }
 
 export function BoardsPage() {
-  const { boards } = useStore();
+  const { boards, activeWorkspaceId } = useStore();
 
   const onCreateBoard = (e: React.MouseEvent<HTMLButtonElement>) => {
     openCreateBoardDialog(e.currentTarget);
   };
 
-  const groups = partition(boards);
+  // F-24: tile view scopes to the active workspace. Reactively re-renders
+  // when the workspace switcher commits a new active id.
+  const scoped = boards.filter((b) => b.workspaceId === activeWorkspaceId);
+  const groups = partition(scoped);
   // F-18: Starred group orders by most-recently-starred. starredAt is set on
   // toggle and backfilled from updatedAt by migrateBoard, so it's reliably
   // populated for any board with starred=true.

@@ -7,10 +7,16 @@ import type {
   ActionItem,
   Column,
 } from "./retro";
-import { BOARD_COLORS, SEED_BOARD, SEED_BOARDS } from "./retro";
+import {
+  BOARD_COLORS,
+  DEFAULT_WORKSPACE_ID,
+  SEED_BOARD,
+  SEED_BOARDS,
+  WORKSPACES,
+} from "./retro";
 
 // Bump when the persisted shape changes in a way that needs migration.
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 const STORAGE_KEY = "retro-board:v1";
 const WRITE_DEBOUNCE_MS = 300;
 
@@ -18,12 +24,16 @@ export type StoreState = {
   schemaVersion: number;
   boards: Board[];
   activeBoardId: string;
+  // F-24: which workspace's boards the sidebar list and `/` tile view show.
+  // Per-board pages route by id and ignore this.
+  activeWorkspaceId: string;
 };
 
 type PersistShape = {
   schemaVersion: number;
   boards: Board[];
   activeBoardId: string;
+  activeWorkspaceId?: string;
 };
 
 const seedState = (): StoreState => ({
@@ -32,6 +42,7 @@ const seedState = (): StoreState => ({
   // constant — that would corrupt the seed for any subsequent fresh boot.
   boards: SEED_BOARDS.map((b) => structuredClone(b)),
   activeBoardId: SEED_BOARD.id,
+  activeWorkspaceId: DEFAULT_WORKSPACE_ID,
 });
 
 // --- pub-sub primitive ---------------------------------------------------
@@ -91,6 +102,7 @@ function writeNow() {
     schemaVersion: state.schemaVersion,
     boards: state.boards,
     activeBoardId: state.activeBoardId,
+    activeWorkspaceId: state.activeWorkspaceId,
   };
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
@@ -132,6 +144,11 @@ function migrateBoard(b: Board): Board {
   if (!next.starred && next.starredAt) {
     next = { ...next, starredAt: undefined };
   }
+  // F-24: backfill workspaceId on boards persisted before the workspace
+  // partition existed. Defaults to Selene so old data stays visible.
+  if (!next.workspaceId) {
+    next = { ...next, workspaceId: DEFAULT_WORKSPACE_ID };
+  }
   return next;
 }
 
@@ -155,10 +172,19 @@ function hydrateFromStorage() {
     ) {
       // Future migrations will branch on parsed.schemaVersion here.
       const migrated = (parsed.boards as Board[]).map(migrateBoard);
+      // F-24: validate persisted activeWorkspaceId points at a known
+      // workspace; fall back to the default if absent or unknown.
+      const persistedWs = parsed.activeWorkspaceId;
+      const activeWorkspaceId =
+        typeof persistedWs === "string" &&
+        WORKSPACES.some((w) => w.id === persistedWs)
+          ? persistedWs
+          : DEFAULT_WORKSPACE_ID;
       state = {
         schemaVersion: SCHEMA_VERSION,
         boards: migrated,
         activeBoardId: parsed.activeBoardId,
+        activeWorkspaceId,
       };
       emit();
     }
@@ -222,6 +248,15 @@ export const storeActions = {
     commit({ ...state, activeBoardId: id });
   },
 
+  // F-24: switch the active workspace. No-op when the id is unchanged or
+  // doesn't match any seeded workspace. Does NOT change activeBoardId — board
+  // pages route by id and remain reachable across workspaces.
+  setActiveWorkspace(id: string) {
+    if (state.activeWorkspaceId === id) return;
+    if (!WORKSPACES.some((w) => w.id === id)) return;
+    commit({ ...state, activeWorkspaceId: id });
+  },
+
   // Persists synchronously and rethrows on storage failure so the caller
   // (the create-board dialog) can show an inline error.
   createBoard(input: CreateBoardInput): string {
@@ -233,6 +268,7 @@ export const storeActions = {
     const board: Board = {
       id,
       type: "retro",
+      workspaceId: state.activeWorkspaceId,
       title: input.title,
       theme: input.theme ?? "",
       created: now.slice(0, 10),

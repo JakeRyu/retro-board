@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useStore } from "../_data/store";
+import { storeActions, useStore } from "../_data/store";
+import { WORKSPACES, workspaceColor } from "../_data/retro";
 import type { Board } from "../_data/retro";
 import { Avatar, Icon } from "./Primitives";
 import { CreateBoardDialog } from "./CreateBoardDialog";
@@ -19,11 +21,18 @@ function cardCount(b: Board): number {
 }
 
 export function Sidebar() {
-  const { boards } = useStore();
+  const { boards, activeWorkspaceId } = useStore();
   const pathname = usePathname() ?? "/";
   const dialog = useCreateBoardDialogHost();
 
-  const activeBoards = boards.filter((b) => !b.archivedAt);
+  const activeWorkspace =
+    WORKSPACES.find((w) => w.id === activeWorkspaceId) ?? WORKSPACES[0];
+  const wsColor = workspaceColor(activeWorkspace.id);
+  const wsMark = activeWorkspace.name.charAt(0).toUpperCase();
+
+  const activeBoards = boards.filter(
+    (b) => !b.archivedAt && b.workspaceId === activeWorkspace.id,
+  );
   const retros = activeBoards
     .slice()
     .sort((a, b) => {
@@ -35,16 +44,90 @@ export function Sidebar() {
   const boardIdMatch = pathname.match(/^\/boards\/([^/]+)/);
   const activeBoardId = boardIdMatch?.[1];
 
+  const [wsMenuOpen, setWsMenuOpen] = useState(false);
+  const wsRef = useRef<HTMLDivElement | null>(null);
+
+  // Click-away + Esc dismiss for the workspace switcher dropdown.
+  useEffect(() => {
+    if (!wsMenuOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (!wsRef.current?.contains(e.target as Node)) setWsMenuOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setWsMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [wsMenuOpen]);
+
   return (
     <aside className="sidebar">
-      <div className="workspace">
-        <span className="ws-mark">A</span>
-        <span className="ws-name">Atlas</span>
-        <Icon
-          name="chevron"
-          size={14}
-          style={{ marginLeft: "auto", color: "var(--fg4)" }}
-        />
+      <div
+        ref={wsRef}
+        className={"workspace" + (wsMenuOpen ? " open" : "")}
+      >
+        <button
+          type="button"
+          className="workspace-trigger"
+          aria-haspopup="menu"
+          aria-expanded={wsMenuOpen}
+          title="Switch workspace"
+          onClick={() => setWsMenuOpen((o) => !o)}
+        >
+          <span
+            className="ws-mark"
+            style={{ background: wsColor }}
+            aria-hidden
+          >
+            {wsMark}
+          </span>
+          <span className="ws-name">{activeWorkspace.name}</span>
+          <span className="ws-chevron" aria-hidden>
+            <Icon name="chevron" size={14} />
+          </span>
+        </button>
+        {wsMenuOpen && (
+          <div
+            className="kebab-menu workspace-menu"
+            role="menu"
+          >
+            {WORKSPACES.map((w) => {
+              const isActive = w.id === activeWorkspace.id;
+              const color = workspaceColor(w.id);
+              const mark = w.name.charAt(0).toUpperCase();
+              return (
+                <button
+                  key={w.id}
+                  type="button"
+                  role="menuitem"
+                  className="menu-item"
+                  onClick={() => {
+                    storeActions.setActiveWorkspace(w.id);
+                    setWsMenuOpen(false);
+                  }}
+                >
+                  <span
+                    className="menu-item-mark"
+                    style={{ background: color }}
+                    aria-hidden
+                  >
+                    {mark}
+                  </span>
+                  <span>{w.name}</span>
+                  {isActive && (
+                    <span className="menu-item-check" aria-hidden>
+                      ✓
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="side-section">
@@ -57,23 +140,17 @@ export function Sidebar() {
             ⌘K
           </span>
         </button>
-      </div>
 
-      <div className="side-section">
-        <div className="side-head">Workspace</div>
-        <div className="side-item">
-          <Icon name="inbox" size={15} /> Inbox <span className="count">3</span>
-        </div>
         <Link
           href="/"
-          className={"side-item" + (pathname === "/" ? " active" : "")}
+          className={
+            "side-item" + (pathname === "/" ? " active" : "")
+          }
+          style={{ marginTop: 6 }}
         >
-          <Icon name="board" size={15} /> Boards
+          <Icon name="board" size={15} /> All retros
           <span className="count">{activeBoards.length}</span>
         </Link>
-        <div className="side-item">
-          <Icon name="cycle" size={15} /> Cycles <span className="count">2</span>
-        </div>
       </div>
 
       <div className="side-section">
