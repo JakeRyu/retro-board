@@ -451,7 +451,18 @@ export const storeActions = {
   addColumn(boardId: string, title: string = "New column"): string {
     const id = "col-" + Date.now().toString(36);
     const column: Column = { id, title, desc: "", cards: [] };
-    updateBoardById(boardId, (b) => ({ ...b, columns: [...b.columns, column] }));
+    updateBoardById(boardId, (b) => {
+      const cols = b.columns.slice();
+      // If the rightmost column is the Action column, insert the new prompt
+      // column before it so the Action column always stays rightmost.
+      const last = cols[cols.length - 1];
+      if (last?.kind === "action") {
+        cols.splice(cols.length - 1, 0, column);
+      } else {
+        cols.push(column);
+      }
+      return { ...b, columns: cols };
+    });
     return id;
   },
 
@@ -467,6 +478,28 @@ export const storeActions = {
       ...b,
       columns: b.columns.filter((c) => c.id !== columnId),
     }));
+  },
+
+  // F-23: create or replace the Action column. If a column with
+  // `kind === "action"` already exists, replace its cards array wholesale.
+  // Otherwise append a new Action column at the end of board.columns.
+  buildActionColumn(boardId: string, actionCards: Card[]) {
+    updateBoardById(boardId, (b) => {
+      const existingIdx = b.columns.findIndex((c) => c.kind === "action");
+      if (existingIdx >= 0) {
+        const updated = b.columns.slice();
+        updated[existingIdx] = { ...updated[existingIdx], cards: actionCards };
+        return { ...b, columns: updated };
+      }
+      const newCol: Column = {
+        id: crypto.randomUUID(),
+        kind: "action",
+        title: "Action",
+        desc: "",
+        cards: actionCards,
+      };
+      return { ...b, columns: [...b.columns, newCol] };
+    });
   },
 
   // F-22: re-insertion helper used by the column-delete Undo. Takes a full
@@ -486,6 +519,9 @@ export const storeActions = {
 
   // Move a card across (or within) columns to an explicit index in the target.
   // No-op when source and destination resolve to the same slot.
+  // Cross-column moves are rejected when either the source or target column
+  // has kind === "action" — Action cards may only be reordered within their
+  // own column, and prompt cards cannot be dragged into the Action column.
   moveCard(
     boardId: string,
     cardId: string,
@@ -498,6 +534,13 @@ export const storeActions = {
       if (!fromCol) return b;
       const card = fromCol.cards.find((c) => c.id === cardId);
       if (!card) return b;
+
+      // Reject cross-column moves involving the Action column. Within-column
+      // reorder (fromColumnId === toColumnId) is always permitted.
+      if (fromColumnId !== toColumnId) {
+        const toCol = b.columns.find((c) => c.id === toColumnId);
+        if (fromCol.kind === "action" || toCol?.kind === "action") return b;
+      }
 
       // Same-column reorder: splice out, then insert at the (possibly shifted)
       // target index so callers can pass either pre- or post-removal indexes

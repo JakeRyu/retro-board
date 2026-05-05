@@ -951,6 +951,29 @@ button {
   background: var(--surface-02);
 }
 
+/* ---------- F-23: Action column + Action card back-pointer ---------- */
+.col.action-col {
+  border-top: 2px solid rgba(94, 106, 210, 0.6);
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+}
+
+.action-card-source {
+  display: block;
+  font-size: 11px;
+  color: var(--fg4);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+.action-card-source[data-clickable="true"] {
+  cursor: pointer;
+}
+.action-card-source[data-clickable="true"]:hover {
+  color: var(--fg2);
+  text-decoration: underline;
+  text-decoration-color: var(--fg4);
+}
+
 /* ---------- discussion mode ---------- */
 .app[data-discussion="true"] .col {
   opacity: 0.32;

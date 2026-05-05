@@ -4,7 +4,7 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Avatar, Icon } from "./Primitives";
-import type { RetroCard, User } from "../_data/retro";
+import type { Card as CardType, RetroCard, User } from "../_data/retro";
 
 type VotersProps = {
   voterIds: string[];
@@ -69,6 +69,8 @@ export type CardProps = {
   readOnly: boolean;
   /** Whether DnD is active for this card. */
   dndEnabled: boolean;
+  /** True when this card lives in the Action column (F-23). Hides vote UI. */
+  isActionCol?: boolean;
   onVote: (cardId: string) => void;
   onSave: (cardId: string, body: string) => void;
   /** Soft-archive (F-14). Replaces the previous hard `onDelete`; "Delete
@@ -82,6 +84,8 @@ export type CardProps = {
   /** Open the card details modal. The originating element is passed so
    *  the modal can restore focus to it on close (F-07 PO #2). */
   onOpenDetails?: (cardId: string, originEl: HTMLElement | null) => void;
+  /** Resolve a source card by id for the "From:" back-pointer (F-23). */
+  findSourceCard?: (sourceCardId: string) => CardType | undefined;
 };
 
 // Visual-only card body — used both inline (via Sortable) and by the DragOverlay
@@ -96,6 +100,8 @@ type CardViewProps = {
   isDragging?: boolean;
   isFollower?: boolean;
   dndEnabled: boolean;
+  /** True when this card lives in the Action column (F-23). Hides vote UI. */
+  isActionCol?: boolean;
   onVote: (cardId: string) => void;
   onSave: (cardId: string, body: string) => void;
   onArchive: (cardId: string) => void;
@@ -104,6 +110,8 @@ type CardViewProps = {
     dir: "up" | "down" | "left" | "right",
   ) => void;
   onOpenDetails?: (cardId: string, originEl: HTMLElement | null) => void;
+  /** Resolve a source card by id for the "From:" back-pointer (F-23). */
+  findSourceCard?: (sourceCardId: string) => CardType | undefined;
   // dnd-kit attributes/listeners are spread by the wrapper, not here.
   attributes?: Record<string, unknown>;
   listeners?: Record<string, unknown>;
@@ -121,11 +129,13 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
     isDragging,
     isFollower,
     dndEnabled,
+    isActionCol,
     onVote,
     onSave,
     onArchive,
     onKeyboardMove,
     onOpenDetails,
+    findSourceCard,
     attributes,
     listeners,
     style,
@@ -137,6 +147,19 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
   const voted = card.voters.includes("me");
   const hasDescription = !!card.description && card.description.trim().length > 0;
   const hasActionItems = (card.actionItems?.length ?? 0) > 0;
+
+  // F-23: resolve the source card for Action card back-pointers.
+  const sourceCard =
+    card.sourceCardId && findSourceCard
+      ? findSourceCard(card.sourceCardId)
+      : undefined;
+  const sourceResolvable = card.sourceCardId !== undefined && sourceCard !== undefined;
+  const sourceTruncated =
+    sourceCard
+      ? sourceCard.body.length > 50
+        ? sourceCard.body.slice(0, 50) + "…"
+        : sourceCard.body
+      : null;
   const [menuOpen, setMenuOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(card.body);
@@ -281,6 +304,29 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
         <div key={card.body} className="card-body">{card.body}</div>
       )}
 
+      {/* F-23: "From:" back-pointer rendered below body on Action cards. */}
+      {card.sourceCardId && (
+        sourceResolvable ? (
+          <span
+            className="action-card-source"
+            data-clickable="true"
+            title={sourceCard!.body}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (onOpenDetails) onOpenDetails(card.sourceCardId!, null);
+            }}
+          >
+            From: {sourceTruncated}
+          </span>
+        ) : (
+          <span className="action-card-source" data-clickable="false">
+            From: (original card removed)
+          </span>
+        )
+      )}
+
       <div className="card-foot">
         {anonymous ? (
           <span className="anon-author">
@@ -306,7 +352,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
               <Icon name="description" size={12} />
             </span>
           )}
-          {hasActionItems && (
+          {hasActionItems && !isActionCol && (
             <span
               className="card-actions-indicator"
               aria-label="Has action items"
@@ -315,11 +361,13 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
               <Icon name="actions" size={14} strokeWidth={2} />
             </span>
           )}
-          <Voters voterIds={card.voters} users={users} anonymous={anonymous} />
-          {!readOnly && (
+          {!isActionCol && (
+            <Voters voterIds={card.voters} users={users} anonymous={anonymous} />
+          )}
+          {!isActionCol && !readOnly && (
             <VoteButton count={card.voters.length} voted={voted} onClick={() => onVote(card.id)} />
           )}
-          {readOnly && (
+          {!isActionCol && readOnly && (
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg4)" }}>
               {card.voters.length}▲
             </span>
@@ -377,11 +425,13 @@ export function Card({
   isNew,
   readOnly,
   dndEnabled,
+  isActionCol,
   onVote,
   onSave,
   onArchive,
   onKeyboardMove,
   onOpenDetails,
+  findSourceCard,
 }: CardProps) {
   const sortable = useSortable({
     id: card.id,
@@ -405,11 +455,13 @@ export function Card({
       readOnly={readOnly}
       dndEnabled={dndEnabled}
       isDragging={isDragging}
+      isActionCol={isActionCol}
       onVote={onVote}
       onSave={onSave}
       onArchive={onArchive}
       onKeyboardMove={onKeyboardMove}
       onOpenDetails={onOpenDetails}
+      findSourceCard={findSourceCard}
       attributes={attributes as unknown as Record<string, unknown>}
       listeners={listeners as unknown as Record<string, unknown>}
       style={style}

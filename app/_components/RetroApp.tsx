@@ -127,6 +127,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
   const [discussion, setDiscussion] = useState(false);
   const [focusColId, setFocusColId] = useState<string>(columns[0]?.id ?? "");
   const [confirmClose, setConfirmClose] = useState(false);
+  const [confirmRebuildAction, setConfirmRebuildAction] = useState(false);
   const [confirmDeleteColId, setConfirmDeleteColId] = useState<string | null>(null);
   const [autoEditColId, setAutoEditColId] = useState<string | null>(null);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
@@ -153,6 +154,10 @@ function RetroAppLoaded({ board }: { board: Board }) {
   // F-21: pointerdown-vs-click guards on every confirm overlay so a text-
   // selection drag that releases over the overlay doesn't dismiss the modal.
   const closeBoardOverlay = useOverlayDismiss(() => setConfirmClose(false));
+  const rebuildActionOverlay = useOverlayDismiss(() => {
+    setConfirmRebuildAction(false);
+    setDiscussion(false);
+  });
   const deleteColumnOverlay = useOverlayDismiss(() =>
     setConfirmDeleteColId(null),
   );
@@ -281,6 +286,63 @@ function RetroAppLoaded({ board }: { board: Board }) {
   const prev = useCallback(() => {
     if (!isFirst) setFocusColId(columns[colIdx - 1].id);
   }, [isFirst, columns, colIdx]);
+
+  // F-23: gather action items from all live non-Action columns, sorted by
+  // column position → vote count desc → item order, and build Action cards.
+  const gatherActionCards = useCallback((): import("../_data/retro").Card[] => {
+    const liveColumns = columns.filter((c) => c.kind !== "action");
+    const result: import("../_data/retro").Card[] = [];
+    for (const col of liveColumns) {
+      const sorted = [...col.cards].sort(
+        (a, b) => b.voters.length - a.voters.length,
+      );
+      for (const card of sorted) {
+        for (const item of card.actionItems ?? []) {
+          result.push({
+            id: crypto.randomUUID(),
+            body: item.text,
+            authorId: "me",
+            voters: [],
+            sourceCardId: card.id,
+          });
+        }
+      }
+    }
+    return result;
+  }, [columns]);
+
+  const performBuildActionColumn = useCallback(() => {
+    const actionCards = gatherActionCards();
+    storeActions.buildActionColumn(board.id, actionCards);
+    setDiscussion(false);
+    setConfirmRebuildAction(false);
+    // Scroll board area rightward so the Action column is immediately visible.
+    setTimeout(() => {
+      const area = boardAreaRef.current;
+      if (!area) return;
+      area.scrollTo({ left: area.scrollWidth, behavior: "smooth" });
+    }, 0);
+    if (actionCards.length === 0) {
+      fireToast("No action items were captured.");
+    } else {
+      fireToast(`Action column rebuilt — ${actionCards.length} items.`);
+    }
+  }, [gatherActionCards, board.id]);
+
+  // F-23: called when the facilitator clicks "Finish discussion". If the
+  // Action column already has cards a confirm modal is shown first; otherwise
+  // the rebuild proceeds immediately.
+  const onFinishDiscussion = useCallback(() => {
+    const actionCol = columns.find((c) => c.kind === "action");
+    const hasExistingCards = (actionCol?.cards.length ?? 0) > 0;
+    // When there are no existing Action column cards, also skip the confirm
+    // when the new action items list is empty (empty → empty is harmless).
+    if (hasExistingCards) {
+      setConfirmRebuildAction(true);
+    } else {
+      performBuildActionColumn();
+    }
+  }, [columns, performBuildActionColumn]);
 
   const closeBoard = () => {
     storeActions.setBoardState("closed");
@@ -691,6 +753,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
     if (dragging.kind === "card") {
       const card = findCard(columns, dragging.cardId);
       if (!card) return null;
+      const fromCol = findColumnByCardId(columns, dragging.cardId);
       return (
         <CardView
           card={card}
@@ -700,10 +763,12 @@ function RetroAppLoaded({ board }: { board: Board }) {
           isNew={false}
           readOnly={closed}
           dndEnabled={false}
+          isActionCol={fromCol?.kind === "action"}
           isFollower
           onVote={() => {}}
           onSave={() => {}}
           onArchive={() => {}}
+          findSourceCard={(srcId) => findCardOnBoard(board, srcId)}
         />
       );
     }
@@ -722,6 +787,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
         autoEditTitle={false}
         newIds={newIds}
         dndEnabled={false}
+        isActionCol={col.kind === "action"}
         editingTitle={false}
         setEditingTitle={() => {}}
         isFollower
@@ -871,7 +937,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
                 ← previous
               </button>
               {isLast ? (
-                <button className="btn btn-primary" onClick={exitDiscussion}>
+                <button className="btn btn-primary" onClick={onFinishDiscussion}>
                   Finish discussion
                 </button>
               ) : (
@@ -959,6 +1025,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
                     autoEditTitle={autoEditColId === col.id}
                     newIds={newIds}
                     dndEnabled={dndEnabled}
+                    isActionCol={col.kind === "action"}
                     onVote={onVote}
                     onAdd={onAdd}
                     onSaveCard={onSaveCard}
@@ -969,6 +1036,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
                     onCardKeyboardMove={handleCardKeyboardMove}
                     onColumnKeyboardMove={handleColumnKeyboardMove}
                     onOpenCardDetails={openCardModal}
+                    findSourceCard={(srcId) => findCardOnBoard(board, srcId)}
                   />
                 ))}
               </SortableContext>
@@ -1001,6 +1069,32 @@ function RetroAppLoaded({ board }: { board: Board }) {
             </button>
             <button className="btn btn-danger" onClick={closeBoard}>
               Close board
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* F-23: rebuild Action column confirm (shown when existing Action col has cards) */}
+      <div
+        className={"modal-overlay" + (confirmRebuildAction ? " open" : "")}
+        {...rebuildActionOverlay.overlayProps}
+      >
+        <div className="modal" {...rebuildActionOverlay.panelProps}>
+          <h2>Rebuild Action column?</h2>
+          <p>The current action items will be replaced. This can&apos;t be undone.</p>
+          <div className="modal-actions">
+            <button
+              className="btn btn-ghost"
+              autoFocus
+              onClick={() => {
+                setConfirmRebuildAction(false);
+                exitDiscussion();
+              }}
+            >
+              Cancel
+            </button>
+            <button className="btn btn-danger" onClick={performBuildActionColumn}>
+              Rebuild
             </button>
           </div>
         </div>
@@ -1043,6 +1137,9 @@ function RetroAppLoaded({ board }: { board: Board }) {
           anonymous={anonymous}
           readOnly={closed}
           isDiscussion={discussion}
+          isActionCard={columns.some(
+            (c) => c.kind === "action" && c.cards.some((x) => x.id === openCard.id),
+          )}
           onClose={closeCardModal}
           onSaveTitle={(cardId, title) => storeActions.saveCard(cardId, title)}
           onSaveDescription={(cardId, description) =>

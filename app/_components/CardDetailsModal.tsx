@@ -17,6 +17,9 @@ type CardDetailsModalProps = {
   readOnly: boolean;
   /** True while discussion mode is active — highlights the action-items section. */
   isDiscussion: boolean;
+  /** True when this card is in the Action column (F-23). Hides the action
+   *  items section — Action cards are commitments, not sources of more items. */
+  isActionCard: boolean;
   onClose: () => void;
   onSaveTitle: (cardId: string, title: string) => void;
   onSaveDescription: (cardId: string, description: string) => void;
@@ -40,6 +43,7 @@ export function CardDetailsModal({
   anonymous,
   readOnly,
   isDiscussion,
+  isActionCard,
   onClose,
   onSaveTitle,
   onSaveDescription,
@@ -181,16 +185,20 @@ export function CardDetailsModal({
               />
             </section>
 
-            {/* F-09 slot — action items captured during discussion */}
-            <section className={"cd-action-items" + (isDiscussion ? " discussion-active" : "")}>
-              <h3 className="cd-section-label">Action items</h3>
-              <ActionList
-                boardId={boardId}
-                cardId={card.id}
-                items={card.actionItems ?? []}
-                readOnly={readOnly}
-              />
-            </section>
+            {/* F-09 slot — action items captured during discussion.
+                Hidden for Action column cards (F-23): they are commitments,
+                not sources of further action items. */}
+            {!isActionCard && (
+              <section className={"cd-action-items" + (isDiscussion ? " discussion-active" : "")}>
+                <h3 className="cd-section-label">Action items</h3>
+                <ActionList
+                  boardId={boardId}
+                  cardId={card.id}
+                  items={card.actionItems ?? []}
+                  readOnly={readOnly}
+                />
+              </section>
+            )}
 
           </div>
 

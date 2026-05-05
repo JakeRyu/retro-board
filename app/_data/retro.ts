@@ -22,6 +22,10 @@ export type Card = {
   /** Column the card was in at archive time. Used by `unarchiveCard` to send
    *  it home; falls back to first column if the column is gone. */
   originColumnId?: string;
+  /** Set on Action column cards only — the id of the source card whose action
+   *  item text became this card's body. Undefined on all prompt-column cards
+   *  and on manually-added Action column cards. */
+  sourceCardId?: string;
 };
 
 // Back-compat alias — older code paths still import RetroCard.
@@ -32,6 +36,11 @@ export type Column = {
   title: string;
   desc: string;
   cards: Card[];
+  /** Marker for the system-managed Action column produced by F-23. When set,
+   *  the column is locked (non-renameable, non-reorderable) and cards carry
+   *  back-pointers to their source cards. All prompt columns have
+   *  `kind: undefined`. */
+  kind?: "action";
 };
 
 export type Board = {

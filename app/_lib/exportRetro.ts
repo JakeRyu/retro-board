@@ -26,7 +26,8 @@ function oneLine(body: string): string {
   return body.replace(/\s+/g, " ").trim();
 }
 
-function bullet(card: Card): string {
+function bullet(card: Card, omitVotes: boolean = false): string {
+  if (omitVotes) return `- ${oneLine(card.body)}`;
   return `- ${oneLine(card.body)} (votes: ${card.voters.length})`;
 }
 
@@ -36,7 +37,10 @@ export function exportActionItems(board: Board): string {
   const rightmost = cols[cols.length - 1];
   const live = rightmost.cards.filter(isLive).filter((c) => oneLine(c.body));
   if (live.length === 0) return "_No action items._";
-  return live.map(bullet).join("\n");
+  // Action column cards all have votes: 0 (voting is disabled). Omit the
+  // annotation so the export reads cleanly as a flat commitment list.
+  const isActionCol = rightmost.kind === "action";
+  return live.map((c) => bullet(c, isActionCol)).join("\n");
 }
 
 export function exportRetroSummary(board: Board): string {
@@ -49,7 +53,8 @@ export function exportRetroSummary(board: Board): string {
     if (live.length === 0) {
       lines.push("_No items._");
     } else {
-      for (const card of live) lines.push(bullet(card));
+      const isActionCol = col.kind === "action";
+      for (const card of live) lines.push(bullet(card, isActionCol));
     }
   }
   return lines.join("\n");

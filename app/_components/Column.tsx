@@ -9,7 +9,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Card } from "./Card";
 import { Icon } from "./Primitives";
-import type { Column as ColumnType, User } from "../_data/retro";
+import type { Card as CardType, Column as ColumnType, User } from "../_data/retro";
 import { useAddCardRequest } from "../_hooks/useAddCardRequest";
 
 const MAX_TITLE = 60;
@@ -30,6 +30,8 @@ export type ColumnProps = {
   newIds: Set<string>;
   /** Whether DnD is enabled for cards / column body. */
   dndEnabled: boolean;
+  /** True when this column is the system-managed Action column (F-23). */
+  isActionCol?: boolean;
   onVote: (cardId: string) => void;
   onAdd: (colId: string, body: string) => void;
   onSaveCard: (cardId: string, body: string) => void;
@@ -43,15 +45,18 @@ export type ColumnProps = {
   ) => void;
   onColumnKeyboardMove?: (colId: string, dir: "left" | "right") => void;
   onOpenCardDetails?: (cardId: string, originEl: HTMLElement | null) => void;
+  /** Resolve a source card by id for Action card back-pointers (F-23). */
+  findSourceCard?: (sourceCardId: string) => CardType | undefined;
 };
 
 export function Column(props: ColumnProps) {
   // Disable column drag while title is being renamed (handled via local state).
+  // Also disable DnD reorder for the Action column — it always stays rightmost.
   const [editingTitle, setEditingTitle] = useState(false);
   const sortable = useSortable({
     id: props.col.id,
     data: { type: "column", columnId: props.col.id },
-    disabled: !props.dndEnabled || editingTitle,
+    disabled: !props.dndEnabled || editingTitle || !!props.isActionCol,
   });
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     sortable;
@@ -82,6 +87,8 @@ type ColumnViewProps = ColumnProps & {
   style?: React.CSSProperties;
   headAttributes?: Record<string, unknown>;
   headListeners?: Record<string, unknown>;
+  // isActionCol and findSourceCard are already on ColumnProps; listed here
+  // only as a reminder that they flow through to Card renders below.
 };
 
 export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
@@ -98,6 +105,7 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
       autoEditTitle,
       newIds,
       dndEnabled,
+      isActionCol,
       onVote,
       onAdd,
       onSaveCard,
@@ -108,6 +116,7 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
       onCardKeyboardMove,
       onColumnKeyboardMove,
       onOpenCardDetails,
+      findSourceCard,
       isDragging,
       isFollower,
       editingTitle,
@@ -136,7 +145,7 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
       return () => window.clearTimeout(t);
     }, [isMounting]);
 
-    const titleEditable = canEdit && !readOnly && !discussion;
+    const titleEditable = canEdit && !readOnly && !discussion && !isActionCol;
 
     useEffect(() => {
       if (adding && inputRef.current) inputRef.current.focus();
@@ -239,7 +248,8 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
           (focused ? " focused" : "") +
           (isDragging ? " drag-ghost" : "") +
           (isFollower ? " drag-follower col" : "") +
-          (isMounting ? " col-new" : "")
+          (isMounting ? " col-new" : "") +
+          (isActionCol ? " action-col" : "")
         }
       >
         <div
@@ -288,42 +298,56 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
               className="col-actions"
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <button
-                className="col-icon-btn"
-                title="Column settings"
-                aria-haspopup="menu"
-                aria-expanded={menuOpen}
-                onClick={() => setMenuOpen((o) => !o)}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="5" cy="12" r="1.5" />
-                  <circle cx="12" cy="12" r="1.5" />
-                  <circle cx="19" cy="12" r="1.5" />
-                </svg>
-              </button>
-              {menuOpen && (
-                <div className="kebab-menu col-kebab-menu" role="menu">
+              {isActionCol ? (
+                // Action column: locked identity — only delete is available.
+                <button
+                  className="btn btn-subtle"
+                  style={{ color: "var(--fg4)", fontSize: 11 }}
+                  aria-label="Remove Action column"
+                  onClick={() => onRequestDeleteColumn(col.id)}
+                >
+                  Remove column
+                </button>
+              ) : (
+                <>
                   <button
-                    className="menu-item"
-                    role="menuitem"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      beginRename();
-                    }}
+                    className="col-icon-btn"
+                    title="Column settings"
+                    aria-haspopup="menu"
+                    aria-expanded={menuOpen}
+                    onClick={() => setMenuOpen((o) => !o)}
                   >
-                    <Icon name="settings" size={12} /> Rename
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="5" cy="12" r="1.5" />
+                      <circle cx="12" cy="12" r="1.5" />
+                      <circle cx="19" cy="12" r="1.5" />
+                    </svg>
                   </button>
-                  <button
-                    className="menu-item danger"
-                    role="menuitem"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onRequestDeleteColumn(col.id);
-                    }}
-                  >
-                    <Icon name="close" size={12} /> Delete
-                  </button>
-                </div>
+                  {menuOpen && (
+                    <div className="kebab-menu col-kebab-menu" role="menu">
+                      <button
+                        className="menu-item"
+                        role="menuitem"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          beginRename();
+                        }}
+                      >
+                        <Icon name="settings" size={12} /> Rename
+                      </button>
+                      <button
+                        className="menu-item danger"
+                        role="menuitem"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          onRequestDeleteColumn(col.id);
+                        }}
+                      >
+                        <Icon name="close" size={12} /> Delete
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -398,11 +422,13 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
                   isNew={newIds.has(c.id)}
                   readOnly={readOnly}
                   dndEnabled={dndEnabled}
+                  isActionCol={isActionCol}
                   onVote={onVote}
                   onSave={onSaveCard}
                   onArchive={onArchiveCard}
                   onKeyboardMove={onCardKeyboardMove}
                   onOpenDetails={onOpenCardDetails}
+                  findSourceCard={findSourceCard}
                 />
               ))
             )}
