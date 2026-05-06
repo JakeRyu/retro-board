@@ -10,7 +10,15 @@
       "Bash(git stash *)",
       "Bash(echo \"exit:$?\")",
       "Bash(git mv *)",
-      "Bash(git reset *)"
+      "Bash(git reset *)",
+      "Bash(npx tsc *)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(grep -q -E \"Ready|started server|compiled|Error|error|Cannot find\" \"C:\\\\\\\\Users\\\\\\\\jryu\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\c--Source-BW2-retro-board\\\\\\\\7de1e5a3-5342-402b-b804-ee156a5c3b02\\\\\\\\tasks\\\\\\\\beupuzwk8.output\")",
+      "Bash(curl -s -o NUL -w \"%{http_code}\" http://localhost:3000/)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s http://localhost:3000/boards/b-seed-eos-1)",
+      "Bash(grep -c \"Sprint 8 — Auth + first endpoints\" \"C:\\\\\\\\Users\\\\\\\\jryu\\\\\\\\.claude\\\\\\\\projects\\\\\\\\c--Source-BW2-retro-board\\\\\\\\7de1e5a3-5342-402b-b804-ee156a5c3b02\\\\\\\\tool-results\\\\\\\\b6odw1j18.txt\")",
+      "Bash(curl -s -I http://localhost:3000/)"
     ]
   }
 }

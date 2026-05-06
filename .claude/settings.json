@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"http://localhost:3000/\")",
+      "Bash(curl -s \"http://localhost:3000/_next/static/chunks/%5Broot-of-the-server%5D__0op~du3._.css\" -o C:/temp/css-served.txt)",
+      "Read(//c/temp/**)",
+      "Bash(git commit -m ' *)",
+      "Bash(curl -s -o NUL -w \"%{http_code}\\\\n\" http://localhost:3000/boards/b-seed-selene-1)",
+      "Bash(curl -s http://localhost:3000/boards/b-seed-selene-1)",
+      "Bash(grep -oE \"col-desc\\(-input|\\\\\\\\.empty|[^a-z-]\\)\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Source\\\\BW2\\\\retro-board\" -Recurse -Filter \"*.ts\" -o Name)",
+      "Bash(Select-String \"\\(store|action|data\\)\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Source\\\\BW2\\\\retro-board\\\\app\" -Recurse -Filter \"*.tsx\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Read(//c/Users/jryu/.claude/plans/**)",
+      "Bash(bunx tsc *)",
+      "Bash(echo \"EXIT=$?\")"
+    ]
+  }
+}
