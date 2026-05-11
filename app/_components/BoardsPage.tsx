@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import type { Board } from "../_data/retro";
-import { storeActions, useStore } from "../_data/store";
+import { storeActions, useBoardsListPolling, useStore } from "../_data/store";
 import { useSectionCollapsed } from "../_hooks/useSectionCollapsed";
 import { openCreateBoardDialog } from "../_hooks/useCreateBoardDialog";
 import { BoardCard } from "./BoardCard";
@@ -51,6 +51,9 @@ export function BoardsPage() {
   useEffect(() => {
     storeActions.fetchBoardsForWorkspace(activeWorkspaceId).catch(() => {});
   }, [activeWorkspaceId]);
+
+  // F-26-D: poll every 2s while the tab is visible.
+  useBoardsListPolling(activeWorkspaceId);
 
   const onCreateBoard = (e: React.MouseEvent<HTMLButtonElement>) => {
     openCreateBoardDialog(e.currentTarget);

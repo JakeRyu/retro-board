@@ -34,7 +34,7 @@ import { Sidebar } from "./Sidebar";
 import { Avatar, Icon } from "./Primitives";
 import type { Board, Card as CardType, Column as ColumnT } from "../_data/retro";
 import { USERS } from "../_data/retro";
-import { storeActions, useBoard } from "../_data/store";
+import { storeActions, useBoard, useBoardPolling } from "../_data/store";
 import { useIsOwner } from "../_hooks/useIsOwner";
 import { fireToast } from "../_hooks/useToast";
 import { useOverlayDismiss } from "../_hooks/useOverlayDismiss";
@@ -54,6 +54,11 @@ export function RetroApp({ boardId }: { boardId: string }) {
   useEffect(() => {
     storeActions.fetchBoardById(boardId).catch(() => {});
   }, [boardId]);
+
+  // F-26-D: poll every 1.5s while the tab is visible. Polling skips itself
+  // whenever a local PUT is pending for this board to avoid clobbering
+  // the user's in-flight edits.
+  useBoardPolling(boardId);
 
   if (!board) {
     return <BoardNotFound />;
@@ -689,25 +694,29 @@ function RetroAppLoaded({ board }: { board: Board }) {
   );
 
   const closeCardModal = useCallback(() => {
-    setOpenCardId((prev) => {
-      if (!prev) return prev;
-      if (typeof window !== "undefined") {
-        history.replaceState(
-          null,
-          "",
-          window.location.pathname + window.location.search,
-        );
-      }
-      // Best-effort focus restore: only if the originating element is still
-      // in the DOM. If the card was DnD'd, deleted, or unmounted, no-op.
-      const origin = openOriginRef.current;
-      openOriginRef.current = null;
-      if (origin && document.body.contains(origin)) {
-        // Defer a frame so React commits the close before focus moves.
-        requestAnimationFrame(() => origin.focus());
-      }
-      return null;
-    });
+    setOpenCardId((prev) => (prev ? null : prev));
+    // Side effects live OUTSIDE the updater. Under React 19 concurrent
+    // rendering the updater can run during render; calling history.replaceState
+    // there nudges Next's Router subscription mid-render and trips a
+    // "setState in render" warning. Running these here is safe — replaceState
+    // to the current URL is a visual no-op, and the focus restore guards on
+    // origin existence.
+    const origin = openOriginRef.current;
+    openOriginRef.current = null;
+    if (typeof window !== "undefined") {
+      history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
+    }
+    if (
+      origin &&
+      typeof document !== "undefined" &&
+      document.body.contains(origin)
+    ) {
+      requestAnimationFrame(() => origin.focus());
+    }
   }, []);
 
   // Hash sync: open #card=<id> on mount and react to back/forward navigation.

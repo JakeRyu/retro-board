@@ -845,6 +845,46 @@ export const storeActions = {
     else nextBoards.push(board as Board);
     commit({ ...state, boards: nextBoards });
   },
+
+  // --- F-26-D: polling --------------------------------------------------
+  // Single-board poll. Cheap when nothing changed (server replies 304 thanks
+  // to If-None-Match). Skipped when this client has an unsent or in-flight
+  // write for the same board so polling doesn't clobber the user's edits
+  // before their own PUT lands.
+  async pollBoardById(id: string): Promise<void> {
+    if (putTimers.has(id) || inFlightPuts.has(id)) return;
+    const etag = etags.get(id);
+    const headers: Record<string, string> = {};
+    if (etag) headers["If-None-Match"] = etag;
+    let res: Response;
+    try {
+      res = await fetch(`/api/boards/${encodeURIComponent(id)}`, {
+        method: "GET",
+        headers,
+        cache: "no-store",
+      });
+    } catch {
+      return; // transient network issue — next tick retries
+    }
+    if (res.status === 304 || res.status === 404) return;
+    if (!res.ok) return;
+    const payload = (await res.json()) as Board & { etag?: string };
+    if (payload.etag) etags.set(id, payload.etag);
+    const { etag: _etag, ...board } = payload;
+    void _etag;
+    const idx = state.boards.findIndex((b) => b.id === id);
+    const nextBoards = state.boards.slice();
+    if (idx >= 0) nextBoards[idx] = board as Board;
+    else nextBoards.push(board as Board);
+    commit({ ...state, boards: nextBoards });
+  },
+
+  // List poll. Cheap path: full list refetch every tick (list-level ETag
+  // would need a server-side aggregate; not worth it for 5–20 boards).
+  // Re-uses fetchBoardsForWorkspace but swallows errors silently.
+  async pollBoardsForWorkspace(workspaceId: string): Promise<void> {
+    await storeActions.fetchBoardsForWorkspace(workspaceId).catch(() => {});
+  },
 };
 
 // --- React hooks ---------------------------------------------------------
@@ -878,6 +918,39 @@ export function useBoard(id: string): Board | undefined {
   const s = useStore();
   if (!id) return undefined;
   return s.boards.find((b) => b.id === id);
+}
+
+// F-26-D: visibility-gated polling. Both hooks bail out of each tick when
+// the tab is hidden — background tabs don't burn requests.
+const BOARD_POLL_MS = 1500;
+const LIST_POLL_MS = 2000;
+
+function isVisible(): boolean {
+  return typeof document === "undefined" || document.visibilityState === "visible";
+}
+
+export function useBoardPolling(boardId: string | undefined): void {
+  useEffect(() => {
+    if (!boardId) return;
+    const tick = () => {
+      if (!isVisible()) return;
+      void storeActions.pollBoardById(boardId);
+    };
+    const handle = window.setInterval(tick, BOARD_POLL_MS);
+    return () => window.clearInterval(handle);
+  }, [boardId]);
+}
+
+export function useBoardsListPolling(workspaceId: string | undefined): void {
+  useEffect(() => {
+    if (!workspaceId) return;
+    const tick = () => {
+      if (!isVisible()) return;
+      void storeActions.pollBoardsForWorkspace(workspaceId);
+    };
+    const handle = window.setInterval(tick, LIST_POLL_MS);
+    return () => window.clearInterval(handle);
+  }, [workspaceId]);
 }
 
 // Test/dev helper — not used in product code.
