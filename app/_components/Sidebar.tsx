@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { storeActions, useStore } from "../_data/store";
 import { WORKSPACES, workspaceColor } from "../_data/retro";
 import type { Board } from "../_data/retro";
@@ -227,9 +227,9 @@ function SidebarUser() {
         <Avatar user={{ initials: "··", color: "var(--fg4)" }} size={20} />
         <span style={{ fontSize: 13, color: "var(--fg4)" }}>…</span>
         <Icon
-          name="settings"
+          name="logout"
           size={13}
-          style={{ marginLeft: "auto", color: "var(--fg4)" }}
+          style={{ marginLeft: "auto", color: "var(--fg4)", opacity: 0.4 }}
         />
       </div>
     );
@@ -245,11 +245,25 @@ function SidebarUser() {
     <div className="side-item">
       <Avatar user={{ initials, color }} size={20} />
       <span style={{ fontSize: 13 }}>{label}</span>
-      <Icon
-        name="settings"
-        size={13}
-        style={{ marginLeft: "auto", color: "var(--fg4)" }}
-      />
+      <button
+        type="button"
+        className="sidebar-user-logout"
+        title="Sign out"
+        aria-label="Sign out"
+        onClick={() => signOut({ callbackUrl: "/" })}
+        style={{
+          marginLeft: "auto",
+          background: "transparent",
+          border: "none",
+          padding: 0,
+          cursor: "pointer",
+          color: "var(--fg4)",
+          display: "inline-flex",
+          alignItems: "center",
+        }}
+      >
+        <Icon name="logout" size={13} />
+      </button>
     </div>
   );
 }
