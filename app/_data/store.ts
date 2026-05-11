@@ -1,27 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import type {
   Board,
   Card,
   ActionItem,
   Column,
 } from "./retro";
-import {
-  BOARD_COLORS,
-  DEFAULT_WORKSPACE_ID,
-  SEED_BOARD,
-  SEED_BOARDS,
-  WORKSPACES,
-} from "./retro";
+import { BOARD_COLORS, DEFAULT_WORKSPACE_ID, WORKSPACES } from "./retro";
 import { fireToast } from "../_hooks/useToast";
 
 // Bump when the persisted shape changes in a way that needs migration.
 export const SCHEMA_VERSION = 2;
-// Cached snapshot used by hydrateFromStorage. The localStorage WRITE path was
-// removed in F-26-C — Cosmos is now SoT. The read remains as a transitional
-// initial-paint hint until F-26-E rips hydrate entirely.
-const STORAGE_KEY = "retro-board:v1";
 // Debounce window for the server PUT that follows board mutations. Matches
 // the prior localStorage debounce so DnD burst-write characteristics are
 // unchanged from the user's perspective.
@@ -36,28 +26,21 @@ export type StoreState = {
   activeWorkspaceId: string;
 };
 
-type PersistShape = {
-  schemaVersion: number;
-  boards: Board[];
-  activeBoardId: string;
-  activeWorkspaceId?: string;
-};
-
-const seedState = (): StoreState => ({
+// F-26-E: empty initial state. The seed boards moved to scripts/seed-cosmos.ts
+// (only the server-side seed knows about them). On mount, page-level effects
+// fetch from Cosmos and populate the store.
+const emptyState = (): StoreState => ({
   schemaVersion: SCHEMA_VERSION,
-  // Deep clone the seed so mutations never write back into the module-level
-  // constant — that would corrupt the seed for any subsequent fresh boot.
-  boards: SEED_BOARDS.map((b) => structuredClone(b)),
-  activeBoardId: SEED_BOARD.id,
+  boards: [],
+  activeBoardId: "",
   activeWorkspaceId: DEFAULT_WORKSPACE_ID,
 });
 
 // --- pub-sub primitive ---------------------------------------------------
 // We keep state in a module-level variable + manual subscribers so the store
-// is independent of React lifecycle and SSR-safe (no localStorage at import).
+// is independent of React lifecycle and SSR-safe.
 
-let state: StoreState = seedState();
-let hydrated = false;
+let state: StoreState = emptyState();
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -155,92 +138,6 @@ async function doServerPut(boardId: string, isRetry: boolean): Promise<void> {
   }
   const data = (await res.json()) as Board & { etag?: string };
   if (data.etag) etags.set(boardId, data.etag);
-}
-
-// Backfill fields added after a board was first persisted. Runs on every
-// hydrate so boards in old localStorage payloads pick up new defaults.
-function migrateBoard(b: Board): Board {
-  let next: Board = b;
-  // F-14: bucket out cards already flagged with archivedAt into the new
-  // board-level archivedCards array so column iteration code never has to
-  // skip them. Self-heals payloads written before F-14 landed.
-  if (!Array.isArray(next.archivedCards)) {
-    const collected: Card[] = [];
-    const cleanedColumns = next.columns.map((c) => {
-      const live: Card[] = [];
-      for (const card of c.cards) {
-        if (card.archivedAt) {
-          collected.push({
-            ...card,
-            originColumnId: card.originColumnId ?? c.id,
-          });
-        } else {
-          live.push(card);
-        }
-      }
-      return live.length === c.cards.length ? c : { ...c, cards: live };
-    });
-    next = { ...next, columns: cleanedColumns, archivedCards: collected };
-  }
-  // F-18: starred boards persisted before this feature shipped don't carry a
-  // starredAt timestamp. Seed it from updatedAt so the home-page "Starred"
-  // group has a deterministic, non-bunched order on first hydrate after the
-  // feature lands. Subsequent toggles overwrite via storeActions.toggleStar.
-  if (next.starred && !next.starredAt) {
-    next = { ...next, starredAt: next.updatedAt };
-  }
-  // Defensive: clear a stray starredAt if `starred` is false. Keeps the
-  // invariant `starred ⇔ starredAt set` so sort code can rely on it.
-  if (!next.starred && next.starredAt) {
-    next = { ...next, starredAt: undefined };
-  }
-  // F-24: backfill workspaceId on boards persisted before the workspace
-  // partition existed. Defaults to Selene so old data stays visible.
-  if (!next.workspaceId) {
-    next = { ...next, workspaceId: DEFAULT_WORKSPACE_ID };
-  }
-  return next;
-}
-
-function hydrateFromStorage() {
-  if (hydrated || typeof window === "undefined") return;
-  hydrated = true;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      // First launch: nothing to read. In-memory seed remains; the page-level
-      // server fetch effect will replace it once Cosmos responds.
-      return;
-    }
-    const parsed = JSON.parse(raw) as Partial<PersistShape>;
-    if (
-      parsed &&
-      typeof parsed.schemaVersion === "number" &&
-      Array.isArray(parsed.boards) &&
-      parsed.boards.length > 0 &&
-      typeof parsed.activeBoardId === "string"
-    ) {
-      // Future migrations will branch on parsed.schemaVersion here.
-      const migrated = (parsed.boards as Board[]).map(migrateBoard);
-      // F-24: validate persisted activeWorkspaceId points at a known
-      // workspace; fall back to the default if absent or unknown.
-      const persistedWs = parsed.activeWorkspaceId;
-      const activeWorkspaceId =
-        typeof persistedWs === "string" &&
-        WORKSPACES.some((w) => w.id === persistedWs)
-          ? persistedWs
-          : DEFAULT_WORKSPACE_ID;
-      state = {
-        schemaVersion: SCHEMA_VERSION,
-        boards: migrated,
-        activeBoardId: parsed.activeBoardId,
-        activeWorkspaceId,
-      };
-      emit();
-    }
-  } catch {
-    // Corrupt payload — fall through to in-memory seed.
-  }
 }
 
 // --- mutations -----------------------------------------------------------
@@ -890,26 +787,7 @@ export const storeActions = {
 // --- React hooks ---------------------------------------------------------
 
 export function useStore(): StoreState {
-  // Trigger one-shot hydrate on mount (client only).
-  const hydrateRef = useRef(false);
-  const [, force] = useState(0);
-  useEffect(() => {
-    if (hydrateRef.current) return;
-    hydrateRef.current = true;
-    hydrateFromStorage();
-    force((n) => n + 1);
-  }, []);
-
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-}
-
-export function useActiveBoard(): Board {
-  const s = useStore();
-  const board = s.boards.find((b) => b.id === s.activeBoardId);
-  // Active id always points at a real board because seed initialises it and
-  // mutations preserve the invariant. Fall back defensively for the very edge
-  // case of a corrupt persisted payload.
-  return board ?? s.boards[0] ?? SEED_BOARD;
 }
 
 // Returns the board with this id, or undefined if no such board exists.
@@ -955,14 +833,7 @@ export function useBoardsListPolling(workspaceId: string | undefined): void {
 
 // Test/dev helper — not used in product code.
 export function __resetStoreForTests() {
-  state = seedState();
-  hydrated = false;
-  if (typeof window !== "undefined") {
-    try {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
-    }
-  }
+  state = emptyState();
+  etags.clear();
   emit();
 }

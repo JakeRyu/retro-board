@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Board } from "../_data/retro";
 import { storeActions, useBoardsListPolling, useStore } from "../_data/store";
 import { useSectionCollapsed } from "../_hooks/useSectionCollapsed";
@@ -44,15 +44,20 @@ function partition(boards: Board[]): Record<SectionKey, Board[]> {
 
 export function BoardsPage() {
   const { boards, activeWorkspaceId } = useStore();
+  // F-26-E: track when the first list fetch has resolved so empty-on-first-
+  // render renders as "loading" not "No retros yet". On workspace switch we
+  // reset so each workspace gets its own loading-vs-empty distinction.
+  const [fetchedOnce, setFetchedOnce] = useState(false);
 
-  // F-26-B: on mount and on workspace switch, replace local boards for this
-  // workspace with the server view. Errors are swallowed so the localStorage
-  // fallback keeps the page usable when Cosmos is unreachable.
   useEffect(() => {
-    storeActions.fetchBoardsForWorkspace(activeWorkspaceId).catch(() => {});
+    setFetchedOnce(false);
+    storeActions
+      .fetchBoardsForWorkspace(activeWorkspaceId)
+      .catch(() => {})
+      .finally(() => setFetchedOnce(true));
   }, [activeWorkspaceId]);
 
-  // F-26-D: poll every 2s while the tab is visible.
+  // Poll every 2s while the tab is visible.
   useBoardsListPolling(activeWorkspaceId);
 
   const onCreateBoard = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -106,7 +111,13 @@ export function BoardsPage() {
           </div>
         </div>
 
-        {totalBoards === 0 ? (
+        {totalBoards === 0 && !fetchedOnce ? (
+          <div className="board-empty">
+            <div className="modal">
+              <h2>Loading retros…</h2>
+            </div>
+          </div>
+        ) : totalBoards === 0 ? (
           <div className="board-empty">
             <div className="modal">
               <h2>No retros yet.</h2>

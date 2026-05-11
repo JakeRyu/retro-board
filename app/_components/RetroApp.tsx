@@ -44,27 +44,50 @@ import { exportActionItems, exportRetroSummary } from "../_lib/exportRetro";
 
 export function RetroApp({ boardId }: { boardId: string }) {
   const board = useBoard(boardId);
+  // F-26-E: distinguish "still fetching for the first time" from "fetched and
+  // no such board exists" so we don't flash <BoardNotFound /> while Cosmos
+  // is still answering the initial GET.
+  const [fetchedOnce, setFetchedOnce] = useState(false);
 
   useEffect(() => {
     if (board) storeActions.setActiveBoardId(board.id);
   }, [board]);
 
-  // F-26-B: pull the server view of this board on mount. Errors stay silent —
-  // the localStorage fallback keeps the page usable when Cosmos is offline.
   useEffect(() => {
-    storeActions.fetchBoardById(boardId).catch(() => {});
+    setFetchedOnce(false);
+    storeActions
+      .fetchBoardById(boardId)
+      .catch(() => {})
+      .finally(() => setFetchedOnce(true));
   }, [boardId]);
 
-  // F-26-D: poll every 1.5s while the tab is visible. Polling skips itself
-  // whenever a local PUT is pending for this board to avoid clobbering
-  // the user's in-flight edits.
+  // Poll every 1.5s while the tab is visible. Polling skips itself whenever
+  // a local PUT is pending for this board to avoid clobbering the user's
+  // in-flight edits.
   useBoardPolling(boardId);
 
   if (!board) {
-    return <BoardNotFound />;
+    return fetchedOnce ? <BoardNotFound /> : <BoardLoading />;
   }
 
   return <RetroAppLoaded board={board} />;
+}
+
+function BoardLoading() {
+  return (
+    <div className="app">
+      <Sidebar />
+      <div className="main">
+        <div className="topbar">
+          <div className="crumbs">
+            <Link href="/" className="crumb-link">Retros</Link>
+            <span className="crumb-sep">/</span>
+            <span style={{ color: "var(--fg4)", fontStyle: "italic" }}>loading…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function BoardNotFound() {

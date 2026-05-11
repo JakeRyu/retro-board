@@ -1,4 +1,5 @@
-import { CosmosClient, type Container } from "@azure/cosmos";
+import { CosmosClient, type Container, type CosmosClientOptions } from "@azure/cosmos";
+import { DefaultAzureCredential } from "@azure/identity";
 import { Agent } from "node:https";
 
 // Cosmos client is module-cached. Initialised lazily on first container access
@@ -9,20 +10,29 @@ let cached: CosmosClient | undefined;
 function getClient(): CosmosClient {
   if (cached) return cached;
   const endpoint = process.env.COSMOS_ENDPOINT;
-  const key = process.env.COSMOS_KEY;
   if (!endpoint) throw new Error("COSMOS_ENDPOINT is not set");
-  if (!key) throw new Error("COSMOS_KEY is not set");
+
+  // Auth: key when COSMOS_KEY is set (dev / emulator), DefaultAzureCredential
+  // otherwise (production: managed identity in App Service, az login locally).
+  // No connection strings — production-grade from day one.
+  const key = process.env.COSMOS_KEY;
+  const opts: CosmosClientOptions = { endpoint };
+  if (key) {
+    opts.key = key;
+  } else {
+    opts.aadCredentials = new DefaultAzureCredential();
+  }
 
   // Emulator ships with a self-signed cert that Node won't trust by default.
-  // Bypass TLS verification only when pointing at the local emulator; never
-  // in production (managed identity + real cert in F-26-E).
+  // Bypass TLS verification only when pointing at the local emulator.
   const isEmulator =
     endpoint.includes("localhost") || endpoint.includes("127.0.0.1");
-  const agent = isEmulator
-    ? (new Agent({ rejectUnauthorized: false }) as unknown as import("@azure/cosmos").Agent)
-    : undefined;
+  if (isEmulator) {
+    opts.agent = new Agent({ rejectUnauthorized: false }) as unknown as
+      import("@azure/cosmos").Agent;
+  }
 
-  cached = new CosmosClient({ endpoint, key, agent });
+  cached = new CosmosClient(opts);
   return cached;
 }
 
