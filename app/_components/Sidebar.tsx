@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { storeActions, useStore } from "../_data/store";
 import { WORKSPACES, workspaceColor } from "../_data/retro";
 import type { Board } from "../_data/retro";
@@ -23,6 +23,7 @@ function cardCount(b: Board): number {
 export function Sidebar() {
   const { boards, activeWorkspaceId } = useStore();
   const pathname = usePathname() ?? "/";
+  const router = useRouter();
   const dialog = useCreateBoardDialogHost();
 
   const activeWorkspace =
@@ -106,8 +107,12 @@ export function Sidebar() {
                   role="menuitem"
                   className="menu-item"
                   onClick={() => {
+                    const changed = w.id !== activeWorkspace.id;
                     storeActions.setActiveWorkspace(w.id);
                     setWsMenuOpen(false);
+                    // Switching workspace lands the user on All retros so the
+                    // new workspace's boards are the immediate context.
+                    if (changed && pathname !== "/") router.push("/");
                   }}
                 >
                   <span
