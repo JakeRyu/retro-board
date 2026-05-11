@@ -140,6 +140,25 @@ async function doServerPut(boardId: string, isRetry: boolean): Promise<void> {
   if (data.etag) etags.set(boardId, data.etag);
 }
 
+// --- user state (per-session activeWorkspaceId) -------------------------
+// Module-level guard so the bootstrap fetch fires at most once per page load.
+// Resets implicitly on a full page reload (module re-evaluates).
+let userStateBootstrapped = false;
+
+async function putUserState(activeWorkspaceId: string): Promise<void> {
+  try {
+    await fetch("/api/me", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ activeWorkspaceId }),
+      cache: "no-store",
+    });
+  } catch {
+    // Best-effort persistence. Next switch will retry; worst case the user's
+    // last selection isn't remembered after reload — minor UX loss only.
+  }
+}
+
 // --- mutations -----------------------------------------------------------
 
 function commit(next: StoreState) {
@@ -218,11 +237,13 @@ export const storeActions = {
 
   // F-24: switch the active workspace. No-op when the id is unchanged or
   // doesn't match any seeded workspace. Does NOT change activeBoardId — board
-  // pages route by id and remain reachable across workspaces.
+  // pages route by id and remain reachable across workspaces. Fires a
+  // fire-and-forget PUT /api/me so the selection survives page reload.
   setActiveWorkspace(id: string) {
     if (state.activeWorkspaceId === id) return;
     if (!WORKSPACES.some((w) => w.id === id)) return;
     commit({ ...state, activeWorkspaceId: id });
+    void putUserState(id);
   },
 
   // Optimistic insert + POST to /api/boards. On failure, rolls back so a
@@ -781,6 +802,33 @@ export const storeActions = {
   // Re-uses fetchBoardsForWorkspace but swallows errors silently.
   async pollBoardsForWorkspace(workspaceId: string): Promise<void> {
     await storeActions.fetchBoardsForWorkspace(workspaceId).catch(() => {});
+  },
+
+  // Bootstrap-once read of /api/me. Restores the user's last selected
+  // workspace across reloads. Bypasses setActiveWorkspace's PUT path so we
+  // don't write back the value we just read. Subsequent calls are no-ops.
+  async fetchUserState(): Promise<void> {
+    if (userStateBootstrapped) return;
+    userStateBootstrapped = true;
+    let res: Response;
+    try {
+      res = await fetch("/api/me", { cache: "no-store" });
+    } catch {
+      // Network blip during bootstrap — leave the default workspace in place.
+      // The flag stays true so we don't retry every render; user can switch
+      // manually and that PUT will persist.
+      return;
+    }
+    if (!res.ok) return;
+    const data = (await res.json()) as { activeWorkspaceId?: string | null };
+    const next = data.activeWorkspaceId;
+    if (
+      typeof next === "string" &&
+      WORKSPACES.some((w) => w.id === next) &&
+      state.activeWorkspaceId !== next
+    ) {
+      commit({ ...state, activeWorkspaceId: next });
+    }
   },
 };
 

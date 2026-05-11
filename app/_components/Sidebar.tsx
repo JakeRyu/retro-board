@@ -237,6 +237,14 @@ export function Sidebar() {
 function SidebarUser() {
   const { data: session, status } = useSession();
 
+  // Bootstrap-once read of /api/me on the first authenticated render. The
+  // store-side flag guards against duplicate fires across remounts.
+  useEffect(() => {
+    if (status === "authenticated") {
+      void storeActions.fetchUserState();
+    }
+  }, [status]);
+
   if (status === "loading") {
     return (
       <div className="side-item">
