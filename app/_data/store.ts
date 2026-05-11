@@ -740,6 +740,42 @@ export const storeActions = {
       return { ...b, columns: without };
     });
   },
+
+  // --- F-26-B: server read path (parallel to localStorage) ---------------
+  // These fetches replace local state with the server's view on each mount.
+  // localStorage continues to receive writes via scheduleWrite — that's the
+  // transitional state until F-26-C moves writes to the server too.
+
+  // Replace boards in `workspaceId` with the server result. Boards from other
+  // workspaces are left untouched, so navigating between workspaces never
+  // wipes the cached view of the other one.
+  async fetchBoardsForWorkspace(workspaceId: string): Promise<void> {
+    const res = await fetch(
+      `/api/boards?workspaceId=${encodeURIComponent(workspaceId)}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) throw new Error(`GET /api/boards: ${res.status}`);
+    const fetched = (await res.json()) as Board[];
+    const others = state.boards.filter((b) => b.workspaceId !== workspaceId);
+    commit({ ...state, boards: [...others, ...fetched] });
+  },
+
+  // Replace a single board (by id) with the server result. Falls back to
+  // appending when the board is unknown locally so a fresh user lands on a
+  // board URL and still sees the data.
+  async fetchBoardById(id: string): Promise<void> {
+    const res = await fetch(`/api/boards/${encodeURIComponent(id)}`, {
+      cache: "no-store",
+    });
+    if (res.status === 404) return;
+    if (!res.ok) throw new Error(`GET /api/boards/${id}: ${res.status}`);
+    const board = (await res.json()) as Board;
+    const idx = state.boards.findIndex((b) => b.id === id);
+    const nextBoards = state.boards.slice();
+    if (idx >= 0) nextBoards[idx] = board;
+    else nextBoards.push(board);
+    commit({ ...state, boards: nextBoards });
+  },
 };
 
 // --- React hooks ---------------------------------------------------------

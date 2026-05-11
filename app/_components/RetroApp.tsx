@@ -49,6 +49,12 @@ export function RetroApp({ boardId }: { boardId: string }) {
     if (board) storeActions.setActiveBoardId(board.id);
   }, [board]);
 
+  // F-26-B: pull the server view of this board on mount. Errors stay silent —
+  // the localStorage fallback keeps the page usable when Cosmos is offline.
+  useEffect(() => {
+    storeActions.fetchBoardById(boardId).catch(() => {});
+  }, [boardId]);
+
   if (!board) {
     return <BoardNotFound />;
   }

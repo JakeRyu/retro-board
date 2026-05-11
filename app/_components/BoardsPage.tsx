@@ -1,7 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import type { Board } from "../_data/retro";
-import { useStore } from "../_data/store";
+import { storeActions, useStore } from "../_data/store";
 import { useSectionCollapsed } from "../_hooks/useSectionCollapsed";
 import { openCreateBoardDialog } from "../_hooks/useCreateBoardDialog";
 import { BoardCard } from "./BoardCard";
@@ -43,6 +44,13 @@ function partition(boards: Board[]): Record<SectionKey, Board[]> {
 
 export function BoardsPage() {
   const { boards, activeWorkspaceId } = useStore();
+
+  // F-26-B: on mount and on workspace switch, replace local boards for this
+  // workspace with the server view. Errors are swallowed so the localStorage
+  // fallback keeps the page usable when Cosmos is unreachable.
+  useEffect(() => {
+    storeActions.fetchBoardsForWorkspace(activeWorkspaceId).catch(() => {});
+  }, [activeWorkspaceId]);
 
   const onCreateBoard = (e: React.MouseEvent<HTMLButtonElement>) => {
     openCreateBoardDialog(e.currentTarget);
