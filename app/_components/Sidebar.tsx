@@ -3,10 +3,36 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { storeActions, useStore } from "../_data/store";
-import { WORKSPACES, workspaceColor } from "../_data/retro";
+import { BOARD_COLORS, WORKSPACES, workspaceColor } from "../_data/retro";
 import type { Board } from "../_data/retro";
 import { Avatar, Icon } from "./Primitives";
+
+// Derive a stable 2-letter avatar string from a display name.
+//   "Jihyung Ryu" → "JR"   "maya"       → "MA"
+//   "Wen"         → "WE"   ""           → "??"
+// Single-word names fall back to the first two letters so the avatar circle
+// never renders as one centred glyph (looks lopsided next to multi-word peers).
+function initialsFromName(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return "??";
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Hash the name to a BOARD_COLORS index so the swatch is deterministic across
+// renders and sessions. Mirrors workspaceColor()'s formula on purpose — same
+// palette keeps the sidebar visually coherent (boards, workspaces, user).
+function colorFromName(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) {
+    h = ((h * 31) + name.charCodeAt(i)) | 0;
+  }
+  const idx = Math.abs(h) % BOARD_COLORS.length;
+  return BOARD_COLORS[idx];
+}
 import { CreateBoardDialog } from "./CreateBoardDialog";
 import { GlobalShortcuts } from "./GlobalShortcuts";
 import { ShortcutsCheatSheet } from "./ShortcutsCheatSheet";
@@ -194,20 +220,52 @@ export function Sidebar() {
           borderTop: "1px solid var(--border-subtle)",
         }}
       >
-        <div className="side-item">
-          <Avatar user={{ initials: "YO", color: "#5e6ad2" }} size={20} />
-          <span style={{ fontSize: 13 }}>You</span>
-          <Icon
-            name="settings"
-            size={13}
-            style={{ marginLeft: "auto", color: "var(--fg4)" }}
-          />
-        </div>
+        <SidebarUser />
       </div>
       <CreateBoardDialog open={dialog.open} onClose={dialog.close} />
       <ShortcutsCheatSheet />
       <GlobalShortcuts />
       <Toast />
     </aside>
+  );
+}
+
+// Bottom-of-sidebar identity row. Reads the Entra session and renders the
+// user's display name + a derived avatar. Falls back to email-prefix, then
+// a neutral "User" / "??" placeholder so the row never breaks layout while
+// the session is still loading or arriving without a profile.
+function SidebarUser() {
+  const { data: session, status } = useSession();
+
+  if (status === "loading") {
+    return (
+      <div className="side-item">
+        <Avatar user={{ initials: "··", color: "var(--fg4)" }} size={20} />
+        <span style={{ fontSize: 13, color: "var(--fg4)" }}>…</span>
+        <Icon
+          name="settings"
+          size={13}
+          style={{ marginLeft: "auto", color: "var(--fg4)" }}
+        />
+      </div>
+    );
+  }
+
+  const name = session?.user?.name?.trim();
+  const emailPrefix = session?.user?.email?.split("@")[0]?.trim();
+  const label = name || emailPrefix || "User";
+  const initials = name || emailPrefix ? initialsFromName(label) : "??";
+  const color = name || emailPrefix ? colorFromName(label) : "var(--fg4)";
+
+  return (
+    <div className="side-item">
+      <Avatar user={{ initials, color }} size={20} />
+      <span style={{ fontSize: 13 }}>{label}</span>
+      <Icon
+        name="settings"
+        size={13}
+        style={{ marginLeft: "auto", color: "var(--fg4)" }}
+      />
+    </div>
   );
 }
