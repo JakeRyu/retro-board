@@ -107,8 +107,10 @@ export function workspaceColor(id: string): string {
   return BOARD_COLORS[idx];
 }
 
+// Seeded coworkers used by the demo retros' authorIds + voter lists. The
+// signed-in Entra user is NOT in this array — they're prepended at render time
+// in RetroApp.tsx so their id is the real session.user.id.
 export const USERS: User[] = [
-  { id: "me", name: "You", initials: "YO", color: "#5e6ad2" },
   { id: "u2", name: "Maya", initials: "MA", color: "#e08e3b" },
   { id: "u3", name: "Jordan", initials: "JO", color: "#27a644" },
   { id: "u4", name: "Priya", initials: "PR", color: "#bb55cc" },
@@ -134,18 +136,18 @@ const SELENE_RICH_COLUMNS: Column[] = [
         id: "k1",
         body: "Switching the daily pipeline to incremental refresh cut runtime from 47m to 9m.",
         authorId: "u2",
-        voters: ["u3", "u4", "u5", "me", "u6"],
+        voters: ["u3", "u4", "u5", "u6"],
       },
       {
         id: "k2",
         body: "Power BI dataset refresh failures dropped to zero after we fixed the upstream null-handling.",
         authorId: "u3",
-        voters: ["u2", "me", "u4"],
+        voters: ["u2", "u4"],
       },
       {
         id: "k3",
         body: "Pair-debugging the parameter override on Friday saved at least a half-day.",
-        authorId: "me",
+        authorId: "u2",
         voters: ["u4"],
       },
       {
@@ -165,12 +167,12 @@ const SELENE_RICH_COLUMNS: Column[] = [
         id: "k5",
         body: "ADF deployment from dev to prod still takes ~20 min — too much manual review.",
         authorId: "u4",
-        voters: ["u2", "u3", "me", "u5", "u6", "u7"],
+        voters: ["u2", "u3", "u5", "u6", "u7"],
       },
       {
         id: "k6",
         body: "Two reports broke silently because the source column was renamed without notice.",
-        authorId: "me",
+        authorId: "u2",
         voters: ["u2", "u3", "u4"],
       },
       {
@@ -190,7 +192,7 @@ const SELENE_RICH_COLUMNS: Column[] = [
         id: "k8",
         body: "Add a smoke-test pipeline that runs against prod data after each deploy.",
         authorId: "u2",
-        voters: ["me", "u4", "u5", "u3"],
+        voters: ["u4", "u5", "u3"],
       },
       {
         id: "k9",
@@ -202,7 +204,7 @@ const SELENE_RICH_COLUMNS: Column[] = [
         id: "k10",
         body: "Scheduled budget alert at 80% of monthly cap.",
         authorId: "u3",
-        voters: ["u4", "me"],
+        voters: ["u4"],
       },
     ],
   },
@@ -214,14 +216,14 @@ const SELENE_RICH_COLUMNS: Column[] = [
       {
         id: "k11",
         body: "Maya unblocked the Synapse linked-service auth on Friday — saved the demo.",
-        authorId: "me",
+        authorId: "u2",
         voters: ["u2", "u3", "u4", "u5"],
       },
       {
         id: "k12",
         body: "Jordan's runbook for hot-fixing failed pipeline runs is now the team standard.",
         authorId: "u3",
-        voters: ["u2", "me"],
+        voters: ["u2"],
       },
     ],
   },
@@ -292,24 +294,24 @@ const EOS_RICH_COLUMNS: Column[] = [
         id: "e-k1",
         body: "OAuth handshake worked first try in staging — credit to Wen's early prototype.",
         authorId: "u6",
-        voters: ["u2", "u3", "u4", "me", "u5"],
+        voters: ["u2", "u3", "u4", "u5"],
       },
       {
         id: "e-k2",
         body: "OpenAPI spec → typed client generation cut frontend integration time in half.",
         authorId: "u4",
-        voters: ["u2", "u3", "me"],
+        voters: ["u2", "u3"],
       },
       {
         id: "e-k3",
         body: "Postman collection lives in the repo now; new hires got productive on day 1.",
         authorId: "u3",
-        voters: ["u4", "me"],
+        voters: ["u4"],
       },
       {
         id: "e-k4",
         body: "Code review SLA stayed under 4 hours all sprint.",
-        authorId: "me",
+        authorId: "u2",
         voters: ["u2", "u7"],
       },
     ],
@@ -323,13 +325,13 @@ const EOS_RICH_COLUMNS: Column[] = [
         id: "e-k5",
         body: "Local dev still requires manual port-forwarding to the Redis sidecar — fragile.",
         authorId: "u7",
-        voters: ["u2", "u3", "me", "u4", "u6"],
+        voters: ["u2", "u3", "u4", "u6"],
       },
       {
         id: "e-k6",
         body: "API contract churn — endpoint shape changed twice mid-sprint, frontend rebuilt twice.",
         authorId: "u4",
-        voters: ["u3", "me", "u5"],
+        voters: ["u3", "u5"],
       },
       {
         id: "e-k7",
@@ -348,7 +350,7 @@ const EOS_RICH_COLUMNS: Column[] = [
         id: "e-k8",
         body: "Lock the contract before frontend starts — schema PR must merge first.",
         authorId: "u4",
-        voters: ["me", "u3", "u5", "u2"],
+        voters: ["u3", "u5", "u2"],
       },
       {
         id: "e-k9",
@@ -360,7 +362,7 @@ const EOS_RICH_COLUMNS: Column[] = [
         id: "e-k10",
         body: "Docker-compose target for the full stack so port-forwarding is one command.",
         authorId: "u7",
-        voters: ["u4", "me", "u2"],
+        voters: ["u4", "u2"],
       },
     ],
   },
@@ -372,14 +374,14 @@ const EOS_RICH_COLUMNS: Column[] = [
       {
         id: "e-k11",
         body: "Theo's load-test harness caught a connection-pool leak before staging deploy.",
-        authorId: "me",
+        authorId: "u2",
         voters: ["u2", "u3", "u4", "u6"],
       },
       {
         id: "e-k12",
         body: "Priya rewrote the auth error responses — much clearer for frontend.",
         authorId: "u3",
-        voters: ["u4", "me"],
+        voters: ["u4"],
       },
     ],
   },

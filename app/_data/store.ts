@@ -355,7 +355,7 @@ export const storeActions = {
     updateColumns(() => cols);
   },
 
-  toggleVote(cardId: string, voterId: string = "me") {
+  toggleVote(cardId: string, voterId: string) {
     updateColumns((cols) =>
       cols.map((c) => ({
         ...c,
@@ -373,7 +373,7 @@ export const storeActions = {
     );
   },
 
-  addCard(colId: string, body: string, authorId: string = "me"): string {
+  addCard(colId: string, body: string, authorId: string): string {
     const id = "n" + Date.now();
     const card: Card = { id, body, authorId, voters: [] };
     updateColumns((cols) =>

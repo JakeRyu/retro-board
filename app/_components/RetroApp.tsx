@@ -32,9 +32,11 @@ import {
 } from "./BoardSettingsMenu";
 import { Sidebar } from "./Sidebar";
 import { Avatar, Icon } from "./Primitives";
-import type { Board, Card as CardType, Column as ColumnT } from "../_data/retro";
+import { useSession } from "next-auth/react";
+import type { Board, Card as CardType, Column as ColumnT, User } from "../_data/retro";
 import { USERS } from "../_data/retro";
 import { storeActions, useBoard, useBoardPolling } from "../_data/store";
+import { colorFromName, initialsFromName } from "../_lib/avatar";
 import { useIsOwner } from "../_hooks/useIsOwner";
 import { fireToast } from "../_hooks/useToast";
 import { useOverlayDismiss } from "../_hooks/useOverlayDismiss";
@@ -156,6 +158,28 @@ function RetroAppLoaded({ board }: { board: Board }) {
   const crumbPrefix = "Retros";
   const isOwner = useIsOwner(board);
 
+  // Signed-in Entra user expressed as a User-shaped record so vote badges /
+  // Voted-by rows can resolve it with the same `users.find(u => u.id === id)`
+  // pattern as the seed coworkers. Memoised on session identity so the prepend
+  // below doesn't churn the users array reference each render.
+  const { data: session } = useSession();
+  const currentUser: User | null = useMemo(() => {
+    const id = session?.user?.id;
+    const name = session?.user?.name;
+    if (!id || !name) return null;
+    return {
+      id,
+      name,
+      initials: initialsFromName(name),
+      color: colorFromName(name),
+    };
+  }, [session?.user?.id, session?.user?.name]);
+  const currentUserId = currentUser?.id ?? "";
+  const users = useMemo<User[]>(
+    () => (currentUser ? [currentUser, ...USERS] : USERS),
+    [currentUser],
+  );
+
   const [anonymous, setAnonymous] = useState(false);
   const [themeOpen, setThemeOpen] = useState(true);
   const [discussion, setDiscussion] = useState(false);
@@ -213,11 +237,13 @@ function RetroAppLoaded({ board }: { board: Board }) {
   }, [columns, focusColId]);
 
   const onVote = (cardId: string) => {
-    storeActions.toggleVote(cardId);
+    if (!currentUserId) return;
+    storeActions.toggleVote(cardId, currentUserId);
   };
 
   const onAdd = (colId: string, body: string) => {
-    const id = storeActions.addCard(colId, body);
+    if (!currentUserId) return;
+    const id = storeActions.addCard(colId, body, currentUserId);
     setNewIds((s) => new Set([...s, id]));
     setTimeout(() => {
       setNewIds((s) => {
@@ -339,7 +365,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
           result.push({
             id: crypto.randomUUID(),
             body: item.text,
-            authorId: "me",
+            authorId: currentUserId,
             voters: [],
             sourceCardId: card.id,
           });
@@ -347,7 +373,9 @@ function RetroAppLoaded({ board }: { board: Board }) {
       }
     }
     return result;
-  }, [columns]);
+    // currentUserId is included so the action items get tagged to whoever
+    // hit Finish Discussion.
+  }, [columns, currentUserId]);
 
   const performBuildActionColumn = useCallback(() => {
     const actionCards = gatherActionCards();
@@ -799,7 +827,8 @@ function RetroAppLoaded({ board }: { board: Board }) {
       return (
         <CardView
           card={card}
-          users={USERS}
+          users={users}
+          currentUserId={currentUserId}
           anonymous={anonymous}
           isTopVoted={false}
           isNew={false}
@@ -819,7 +848,8 @@ function RetroAppLoaded({ board }: { board: Board }) {
     return (
       <ColumnView
         col={col}
-        users={USERS}
+        users={users}
+        currentUserId={currentUserId}
         anonymous={anonymous}
         focused={false}
         sortByVotes={false}
@@ -1058,7 +1088,8 @@ function RetroAppLoaded({ board }: { board: Board }) {
                   <Column
                     key={col.id}
                     col={col}
-                    users={USERS}
+                    users={users}
+                    currentUserId={currentUserId}
                     anonymous={anonymous}
                     focused={discussion && col.id === focusColId}
                     sortByVotes={discussion && col.id === focusColId}
@@ -1176,7 +1207,8 @@ function RetroAppLoaded({ board }: { board: Board }) {
       {openCard && (
         <CardDetailsModal
           card={openCard}
-          users={USERS}
+          users={users}
+          currentUserId={currentUserId}
           boardId={board.id}
           anonymous={anonymous}
           readOnly={closed}

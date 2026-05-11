@@ -11,6 +11,9 @@ const URL_REGEX = /\bhttps?:\/\/\S+/g;
 type CardDetailsModalProps = {
   card: Card;
   users: User[];
+  /** Signed-in Entra user's id. Drives the vote-toggled state for the user's
+   *  own vote. Empty string while session is still resolving. */
+  currentUserId: string;
   /** Board id — needed by sub-features whose store actions are board-scoped. */
   boardId: string;
   anonymous: boolean;
@@ -39,6 +42,7 @@ type CardDetailsModalProps = {
 export function CardDetailsModal({
   card,
   users,
+  currentUserId,
   boardId,
   anonymous,
   readOnly,
@@ -106,7 +110,7 @@ export function CardDetailsModal({
     onClose();
   };
 
-  const voted = card.voters.includes("me");
+  const voted = !!currentUserId && card.voters.includes(currentUserId);
   const showVoteRow = !readOnly;
 
   return (

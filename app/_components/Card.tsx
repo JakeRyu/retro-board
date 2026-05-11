@@ -63,6 +63,9 @@ function VoteButton({ count, voted, onClick }: VoteButtonProps) {
 export type CardProps = {
   card: RetroCard;
   users: User[];
+  /** Signed-in Entra user's id. Used to decide isMine + vote-toggled state.
+   *  Empty string while session is still resolving — falls back to "not me". */
+  currentUserId: string;
   anonymous: boolean;
   isTopVoted: boolean;
   isNew: boolean;
@@ -93,6 +96,7 @@ export type CardProps = {
 type CardViewProps = {
   card: RetroCard;
   users: User[];
+  currentUserId: string;
   anonymous: boolean;
   isTopVoted: boolean;
   isNew: boolean;
@@ -122,6 +126,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
   {
     card,
     users,
+    currentUserId,
     anonymous,
     isTopVoted,
     isNew,
@@ -143,8 +148,8 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
   ref,
 ) {
   const author = users.find((u) => u.id === card.authorId);
-  const isMine = card.authorId === "me" && !readOnly;
-  const voted = card.voters.includes("me");
+  const isMine = !!currentUserId && card.authorId === currentUserId && !readOnly;
+  const voted = !!currentUserId && card.voters.includes(currentUserId);
   const hasDescription = !!card.description && card.description.trim().length > 0;
   const hasActionItems = (card.actionItems?.length ?? 0) > 0;
 
@@ -420,6 +425,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
 export function Card({
   card,
   users,
+  currentUserId,
   anonymous,
   isTopVoted,
   isNew,
@@ -449,6 +455,7 @@ export function Card({
       ref={setNodeRef}
       card={card}
       users={users}
+      currentUserId={currentUserId}
       anonymous={anonymous}
       isTopVoted={isTopVoted}
       isNew={isNew}

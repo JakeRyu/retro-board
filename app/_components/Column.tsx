@@ -18,6 +18,9 @@ const MAX_DESC = 200;
 export type ColumnProps = {
   col: ColumnType;
   users: User[];
+  /** Signed-in Entra user's id. Empty string before the session resolves;
+   *  child components fall back to no "this is your" affordances when empty. */
+  currentUserId: string;
   anonymous: boolean;
   focused: boolean;
   sortByVotes: boolean;
@@ -99,6 +102,7 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
     {
       col,
       users,
+      currentUserId,
       anonymous,
       focused,
       sortByVotes,
@@ -487,6 +491,7 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
                   key={c.id}
                   card={c}
                   users={users}
+                  currentUserId={currentUserId}
                   anonymous={anonymous}
                   isTopVoted={focused && sortByVotes && c.id === topId}
                   isNew={newIds.has(c.id)}
