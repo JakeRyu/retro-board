@@ -34,13 +34,17 @@ export function userStateContainer(): Container {
   return getClient().database("retro-board").container("userState");
 }
 
-// Cosmos system fields we don't want to leak to the client.
-export type CosmosSystemFields = "_rid" | "_self" | "_attachments" | "_ts" | "_etag";
+// Cosmos system fields we don't want to leak to the client, except _etag —
+// which we surface as `etag` so the client can echo it back on If-Match writes.
+type CosmosInternalFields = "_rid" | "_self" | "_attachments" | "_ts" | "_etag";
 
-export function stripSystemFields<T extends Record<string, unknown>>(
+export function stripSystemFields<T extends object>(
   doc: T,
-): Omit<T, CosmosSystemFields> {
-  const { _rid, _self, _attachments, _ts, _etag, ...rest } = doc;
-  void _rid; void _self; void _attachments; void _ts; void _etag;
-  return rest;
+): Omit<T, CosmosInternalFields> & { etag?: string } {
+  const { _rid, _self, _attachments, _ts, _etag, ...rest } = doc as T &
+    Record<string, unknown>;
+  void _rid; void _self; void _attachments; void _ts;
+  const out = rest as Omit<T, CosmosInternalFields> & { etag?: string };
+  if (typeof _etag === "string") out.etag = _etag;
+  return out;
 }

@@ -98,9 +98,9 @@ export function CreateBoardDialog({ open, onClose }: Props) {
     setError(null);
     setSubmitting(true);
     // Small confirmation beat before navigation per spec §4.
-    setTimeout(() => {
+    setTimeout(async () => {
       try {
-        const id = storeActions.createBoard({
+        const id = await storeActions.createBoard({
           title: trimmed,
           color,
           theme: theme.trim(),
@@ -111,7 +111,7 @@ export function CreateBoardDialog({ open, onClose }: Props) {
         router.push(`/boards/${id}`);
       } catch {
         setSubmitting(false);
-        setError("Couldn't save — your browser's storage is full.");
+        setError("Couldn't save — the server didn't accept the new retro.");
       }
     }, SUBMIT_DELAY_MS);
   }, [title, color, theme, onClose, router]);

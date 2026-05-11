@@ -14,11 +14,18 @@ import {
   SEED_BOARDS,
   WORKSPACES,
 } from "./retro";
+import { fireToast } from "../_hooks/useToast";
 
 // Bump when the persisted shape changes in a way that needs migration.
 export const SCHEMA_VERSION = 2;
+// Cached snapshot used by hydrateFromStorage. The localStorage WRITE path was
+// removed in F-26-C — Cosmos is now SoT. The read remains as a transitional
+// initial-paint hint until F-26-E rips hydrate entirely.
 const STORAGE_KEY = "retro-board:v1";
-const WRITE_DEBOUNCE_MS = 300;
+// Debounce window for the server PUT that follows board mutations. Matches
+// the prior localStorage debounce so DnD burst-write characteristics are
+// unchanged from the user's perspective.
+const PUT_DEBOUNCE_MS = 300;
 
 export type StoreState = {
   schemaVersion: number;
@@ -74,37 +81,80 @@ function getServerSnapshot(): StoreState {
   return state;
 }
 
-// --- persistence ---------------------------------------------------------
+// --- server write path (F-26-C) ------------------------------------------
+// Per-board Cosmos ETags. Captured on every successful fetch / PUT / POST;
+// echoed back as If-Match on PUT. Empty when we've never seen a board from
+// the server (legitimate for boards created locally during a Cosmos outage).
+const etags = new Map<string, string>();
 
-let writeTimer: ReturnType<typeof setTimeout> | null = null;
+// Per-board debounce timers + serialization promises. A mutation restarts the
+// timer; on fire, the PUT is queued to run AFTER any in-flight PUT for the
+// same board completes — so PUTs for one board are always ordered.
+const putTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const inFlightPuts = new Map<string, Promise<void>>();
 
-function scheduleWrite() {
+function scheduleServerPut(boardId: string) {
   if (typeof window === "undefined") return;
-  if (writeTimer) clearTimeout(writeTimer);
-  writeTimer = setTimeout(flush, WRITE_DEBOUNCE_MS);
+  const existing = putTimers.get(boardId);
+  if (existing) clearTimeout(existing);
+  const timer = setTimeout(() => {
+    putTimers.delete(boardId);
+    void serverPut(boardId);
+  }, PUT_DEBOUNCE_MS);
+  putTimers.set(boardId, timer);
 }
 
-function flush() {
-  if (typeof window === "undefined") return;
-  writeTimer = null;
+async function serverPut(boardId: string): Promise<void> {
+  const prev = inFlightPuts.get(boardId);
+  const next = (async () => {
+    if (prev) await prev.catch(() => {});
+    await doServerPut(boardId, false);
+  })();
+  inFlightPuts.set(boardId, next);
   try {
-    writeNow();
-  } catch {
-    // Quota or privacy-mode failure: drop silently. Memory state still works.
+    await next;
+  } finally {
+    if (inFlightPuts.get(boardId) === next) inFlightPuts.delete(boardId);
   }
 }
 
-// Synchronous write that surfaces failures. Used by mutations whose UI must
-// know about a storage-full error (e.g. create-board dialog).
-function writeNow() {
-  if (typeof window === "undefined") return;
-  const payload: PersistShape = {
-    schemaVersion: state.schemaVersion,
-    boards: state.boards,
-    activeBoardId: state.activeBoardId,
-    activeWorkspaceId: state.activeWorkspaceId,
+async function doServerPut(boardId: string, isRetry: boolean): Promise<void> {
+  const board = state.boards.find((b) => b.id === boardId);
+  if (!board) return;
+  const etag = etags.get(boardId);
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
   };
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  if (etag) headers["If-Match"] = etag;
+  let res: Response;
+  try {
+    res = await fetch(`/api/boards/${encodeURIComponent(boardId)}`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify(board),
+      cache: "no-store",
+    });
+  } catch {
+    // Network blip — leave the dirty state alone; next mutation will retry.
+    return;
+  }
+  if (res.status === 412) {
+    // ETag mismatch: refetch (which replaces local with server) then retry
+    // once. After refetch the local state matches the server, so the retry
+    // is effectively idempotent and almost always succeeds.
+    await storeActions.fetchBoardById(boardId).catch(() => {});
+    if (isRetry) {
+      fireToast("Your edits were replaced by a newer server version.");
+      return;
+    }
+    return doServerPut(boardId, true);
+  }
+  if (!res.ok) {
+    fireToast("Couldn't save changes to the server.");
+    return;
+  }
+  const data = (await res.json()) as Board & { etag?: string };
+  if (data.etag) etags.set(boardId, data.etag);
 }
 
 // Backfill fields added after a board was first persisted. Runs on every
@@ -158,8 +208,8 @@ function hydrateFromStorage() {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      // First launch: persist the seed so future loads skip the seed branch.
-      flush();
+      // First launch: nothing to read. In-memory seed remains; the page-level
+      // server fetch effect will replace it once Cosmos responds.
       return;
     }
     const parsed = JSON.parse(raw) as Partial<PersistShape>;
@@ -198,7 +248,6 @@ function hydrateFromStorage() {
 function commit(next: StoreState) {
   state = next;
   emit();
-  scheduleWrite();
 }
 
 function touch(board: Board): Board {
@@ -212,6 +261,7 @@ function updateActiveBoard(updater: (b: Board) => Board) {
   const nextBoards = state.boards.slice();
   nextBoards[idx] = nextBoard;
   commit({ ...state, boards: nextBoards });
+  scheduleServerPut(nextBoard.id);
 }
 
 function updateColumns(updater: (cols: Column[]) => Column[]) {
@@ -225,6 +275,7 @@ function updateBoardById(id: string, updater: (b: Board) => Board) {
   const nextBoards = state.boards.slice();
   nextBoards[idx] = nextBoard;
   commit({ ...state, boards: nextBoards });
+  scheduleServerPut(id);
 }
 
 function defaultColumns(): Column[] {
@@ -277,9 +328,10 @@ export const storeActions = {
     commit({ ...state, activeWorkspaceId: id });
   },
 
-  // Persists synchronously and rethrows on storage failure so the caller
-  // (the create-board dialog) can show an inline error.
-  createBoard(input: CreateBoardInput): string {
+  // Optimistic insert + POST to /api/boards. On failure, rolls back so a
+  // phantom board never lingers in memory. Returns the new id; throws when
+  // the server rejects the create so the dialog can surface an inline error.
+  async createBoard(input: CreateBoardInput): Promise<string> {
     const now = new Date().toISOString();
     const id = "b-" + Date.now().toString(36);
     const color = BOARD_COLORS.includes(input.color as (typeof BOARD_COLORS)[number])
@@ -307,19 +359,26 @@ export const storeActions = {
       activeBoardId: id,
     };
     emit();
-    // Force a synchronous write so storage-full surfaces before navigation.
-    if (writeTimer) {
-      clearTimeout(writeTimer);
-      writeTimer = null;
-    }
+    let res: Response;
     try {
-      writeNow();
+      res = await fetch("/api/boards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(board),
+        cache: "no-store",
+      });
     } catch (err) {
-      // Roll back so the failed write doesn't leave a phantom board in memory.
       state = prevState;
       emit();
       throw err;
     }
+    if (!res.ok) {
+      state = prevState;
+      emit();
+      throw new Error(`Create failed: ${res.status}`);
+    }
+    const created = (await res.json()) as Board & { etag?: string };
+    if (created.etag) etags.set(created.id, created.etag);
     return id;
   },
 
@@ -741,23 +800,30 @@ export const storeActions = {
     });
   },
 
-  // --- F-26-B: server read path (parallel to localStorage) ---------------
-  // These fetches replace local state with the server's view on each mount.
-  // localStorage continues to receive writes via scheduleWrite — that's the
-  // transitional state until F-26-C moves writes to the server too.
+  // --- F-26-B/C: server fetches -----------------------------------------
+  // These replace local state with the server's view on each mount. They
+  // also capture per-board ETags so subsequent PUTs can echo If-Match.
 
   // Replace boards in `workspaceId` with the server result. Boards from other
   // workspaces are left untouched, so navigating between workspaces never
-  // wipes the cached view of the other one.
+  // wipes the cached view of the other one. Captures each board's etag so
+  // subsequent PUTs carry the right If-Match header.
   async fetchBoardsForWorkspace(workspaceId: string): Promise<void> {
     const res = await fetch(
       `/api/boards?workspaceId=${encodeURIComponent(workspaceId)}`,
       { cache: "no-store" },
     );
     if (!res.ok) throw new Error(`GET /api/boards: ${res.status}`);
-    const fetched = (await res.json()) as Board[];
+    const fetched = (await res.json()) as (Board & { etag?: string })[];
+    for (const b of fetched) {
+      if (b.etag) etags.set(b.id, b.etag);
+    }
     const others = state.boards.filter((b) => b.workspaceId !== workspaceId);
-    commit({ ...state, boards: [...others, ...fetched] });
+    const cleaned = fetched.map(({ etag: _etag, ...rest }) => {
+      void _etag;
+      return rest as Board;
+    });
+    commit({ ...state, boards: [...others, ...cleaned] });
   },
 
   // Replace a single board (by id) with the server result. Falls back to
@@ -769,11 +835,14 @@ export const storeActions = {
     });
     if (res.status === 404) return;
     if (!res.ok) throw new Error(`GET /api/boards/${id}: ${res.status}`);
-    const board = (await res.json()) as Board;
+    const payload = (await res.json()) as Board & { etag?: string };
+    if (payload.etag) etags.set(id, payload.etag);
+    const { etag: _etag, ...board } = payload;
+    void _etag;
     const idx = state.boards.findIndex((b) => b.id === id);
     const nextBoards = state.boards.slice();
-    if (idx >= 0) nextBoards[idx] = board;
-    else nextBoards.push(board);
+    if (idx >= 0) nextBoards[idx] = board as Board;
+    else nextBoards.push(board as Board);
     commit({ ...state, boards: nextBoards });
   },
 };

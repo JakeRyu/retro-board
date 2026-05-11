@@ -29,3 +29,24 @@ export async function GET(req: NextRequest) {
 
   return Response.json(resources.map(stripSystemFields));
 }
+
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = (await req.json()) as Partial<Board>;
+  if (!body.id || !body.workspaceId) {
+    return Response.json(
+      { error: "id and workspaceId are required" },
+      { status: 400 },
+    );
+  }
+
+  const { resource } = await boardsContainer().items.create<Board>(body as Board);
+  if (!resource) {
+    return Response.json({ error: "Create failed" }, { status: 500 });
+  }
+  return Response.json(stripSystemFields(resource), { status: 201 });
+}
