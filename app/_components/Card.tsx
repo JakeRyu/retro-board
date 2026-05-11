@@ -4,27 +4,25 @@ import { forwardRef, useEffect, useRef, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Avatar, Icon } from "./Primitives";
-import type { Card as CardType, RetroCard, User } from "../_data/retro";
+import type { Card as CardType, RetroCard, Voter } from "../_data/retro";
+import { colorFromName, initialsFromName } from "../_lib/avatar";
 
 type VotersProps = {
-  voterIds: string[];
-  users: User[];
+  voters: Voter[];
   anonymous: boolean;
 };
 
-function Voters({ voterIds, users, anonymous }: VotersProps) {
+function Voters({ voters, anonymous }: VotersProps) {
   const max = 4;
-  const shown = voterIds.slice(0, max);
-  const overflow = voterIds.length - shown.length;
+  const shown = voters.slice(0, max);
+  const overflow = voters.length - shown.length;
   return (
     <div className="voters">
-      {shown.map((id, i) => {
-        const u = users.find((x) => x.id === id);
-        if (!u) return null;
+      {shown.map((v, i) => {
         if (anonymous) {
           return (
             <span
-              key={id + i}
+              key={v.id + i}
               className="avatar"
               style={{ background: "var(--surface-08)", color: "var(--fg3)", fontSize: 8 }}
             >
@@ -32,7 +30,13 @@ function Voters({ voterIds, users, anonymous }: VotersProps) {
             </span>
           );
         }
-        return <Avatar key={id + i} user={u} size={16} />;
+        return (
+          <Avatar
+            key={v.id + i}
+            user={{ initials: initialsFromName(v.name), color: colorFromName(v.name) }}
+            size={16}
+          />
+        );
       })}
       {overflow > 0 && <span className="voters-more">+{overflow}</span>}
     </div>
@@ -62,7 +66,6 @@ function VoteButton({ count, voted, onClick }: VoteButtonProps) {
 
 export type CardProps = {
   card: RetroCard;
-  users: User[];
   /** Signed-in Entra user's id. Used to decide isMine + vote-toggled state.
    *  Empty string while session is still resolving — falls back to "not me". */
   currentUserId: string;
@@ -95,7 +98,6 @@ export type CardProps = {
 // follower clone. Keep wrapper-free so callers control positioning.
 type CardViewProps = {
   card: RetroCard;
-  users: User[];
   currentUserId: string;
   anonymous: boolean;
   isTopVoted: boolean;
@@ -125,7 +127,6 @@ type CardViewProps = {
 export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardView(
   {
     card,
-    users,
     currentUserId,
     anonymous,
     isTopVoted,
@@ -147,9 +148,9 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
   },
   ref,
 ) {
-  const author = users.find((u) => u.id === card.authorId);
-  const isMine = !!currentUserId && card.authorId === currentUserId && !readOnly;
-  const voted = !!currentUserId && card.voters.includes(currentUserId);
+  const author = card.author;
+  const isMine = !!currentUserId && author.id === currentUserId && !readOnly;
+  const voted = !!currentUserId && card.voters.some((v) => v.id === currentUserId);
   const hasDescription = !!card.description && card.description.trim().length > 0;
   const hasActionItems = (card.actionItems?.length ?? 0) > 0;
 
@@ -338,15 +339,21 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
             <span className="anon-dot">?</span>
             anonymous
           </span>
-        ) : author ? (
+        ) : (
           <span className="author">
-            <Avatar user={author} size={16} />
+            <Avatar
+              user={{
+                initials: initialsFromName(author.name),
+                color: colorFromName(author.name),
+              }}
+              size={16}
+            />
             <span>
               {author.name}
               {isMine ? " · you" : ""}
             </span>
           </span>
-        ) : null}
+        )}
         <div className="vote-row">
           {hasDescription && (
             <span
@@ -367,7 +374,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
             </span>
           )}
           {!isActionCol && (
-            <Voters voterIds={card.voters} users={users} anonymous={anonymous} />
+            <Voters voters={card.voters} anonymous={anonymous} />
           )}
           {!isActionCol && !readOnly && (
             <VoteButton count={card.voters.length} voted={voted} onClick={() => onVote(card.id)} />
@@ -424,7 +431,6 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
 
 export function Card({
   card,
-  users,
   currentUserId,
   anonymous,
   isTopVoted,
@@ -454,7 +460,6 @@ export function Card({
     <CardView
       ref={setNodeRef}
       card={card}
-      users={users}
       currentUserId={currentUserId}
       anonymous={anonymous}
       isTopVoted={isTopVoted}

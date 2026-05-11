@@ -11,11 +11,19 @@ export type ActionItem = {
   done: boolean;
 };
 
+// Minimal user reference embedded on cards so we don't need an out-of-band
+// directory to resolve display names for voters / authors. Carries id (the
+// stable identity — Entra OID for real users, seed id like "u2" for
+// coworkers) plus the display name captured at write time. Names persist
+// even if the user's Entra display name changes later; we accept the small
+// staleness in exchange for being able to render any vote without a fetch.
+export type Voter = { id: string; name: string };
+
 export type Card = {
   id: string;
   body: string;
-  authorId: string;
-  voters: string[];
+  author: Voter;
+  voters: Voter[];
   description?: string;
   actionItems?: ActionItem[];
   archivedAt?: string;
@@ -135,26 +143,26 @@ const SELENE_RICH_COLUMNS: Column[] = [
       {
         id: "k1",
         body: "Switching the daily pipeline to incremental refresh cut runtime from 47m to 9m.",
-        authorId: "u2",
-        voters: ["u3", "u4", "u5", "u6"],
+        author: { id: "u2", name: "Maya" },
+        voters: [{ id: "u3", name: "Jordan" }, { id: "u4", name: "Priya" }, { id: "u5", name: "Sam" }, { id: "u6", name: "Wen" }],
       },
       {
         id: "k2",
         body: "Power BI dataset refresh failures dropped to zero after we fixed the upstream null-handling.",
-        authorId: "u3",
-        voters: ["u2", "u4"],
+        author: { id: "u3", name: "Jordan" },
+        voters: [{ id: "u2", name: "Maya" }, { id: "u4", name: "Priya" }],
       },
       {
         id: "k3",
         body: "Pair-debugging the parameter override on Friday saved at least a half-day.",
-        authorId: "u2",
-        voters: ["u4"],
+        author: { id: "u2", name: "Maya" },
+        voters: [{ id: "u4", name: "Priya" }],
       },
       {
         id: "k4",
         body: "Stakeholder demo Wednesday landed — they signed off on the schema change.",
-        authorId: "u5",
-        voters: ["u2", "u3"],
+        author: { id: "u5", name: "Sam" },
+        voters: [{ id: "u2", name: "Maya" }, { id: "u3", name: "Jordan" }],
       },
     ],
   },
@@ -166,20 +174,20 @@ const SELENE_RICH_COLUMNS: Column[] = [
       {
         id: "k5",
         body: "ADF deployment from dev to prod still takes ~20 min — too much manual review.",
-        authorId: "u4",
-        voters: ["u2", "u3", "u5", "u6", "u7"],
+        author: { id: "u4", name: "Priya" },
+        voters: [{ id: "u2", name: "Maya" }, { id: "u3", name: "Jordan" }, { id: "u5", name: "Sam" }, { id: "u6", name: "Wen" }, { id: "u7", name: "Theo" }],
       },
       {
         id: "k6",
         body: "Two reports broke silently because the source column was renamed without notice.",
-        authorId: "u2",
-        voters: ["u2", "u3", "u4"],
+        author: { id: "u2", name: "Maya" },
+        voters: [{ id: "u2", name: "Maya" }, { id: "u3", name: "Jordan" }, { id: "u4", name: "Priya" }],
       },
       {
         id: "k7",
         body: "Cost spike on Tuesday — we left a debug pipeline running over lunch.",
-        authorId: "u6",
-        voters: ["u3", "u5"],
+        author: { id: "u6", name: "Wen" },
+        voters: [{ id: "u3", name: "Jordan" }, { id: "u5", name: "Sam" }],
       },
     ],
   },
@@ -191,20 +199,20 @@ const SELENE_RICH_COLUMNS: Column[] = [
       {
         id: "k8",
         body: "Add a smoke-test pipeline that runs against prod data after each deploy.",
-        authorId: "u2",
-        voters: ["u4", "u5", "u3"],
+        author: { id: "u2", name: "Maya" },
+        voters: [{ id: "u4", name: "Priya" }, { id: "u5", name: "Sam" }, { id: "u3", name: "Jordan" }],
       },
       {
         id: "k9",
         body: "Slack-bot upstream schema-change announcements so reporting owners get a heads-up.",
-        authorId: "u7",
-        voters: ["u2", "u4"],
+        author: { id: "u7", name: "Theo" },
+        voters: [{ id: "u2", name: "Maya" }, { id: "u4", name: "Priya" }],
       },
       {
         id: "k10",
         body: "Scheduled budget alert at 80% of monthly cap.",
-        authorId: "u3",
-        voters: ["u4"],
+        author: { id: "u3", name: "Jordan" },
+        voters: [{ id: "u4", name: "Priya" }],
       },
     ],
   },
@@ -216,14 +224,14 @@ const SELENE_RICH_COLUMNS: Column[] = [
       {
         id: "k11",
         body: "Maya unblocked the Synapse linked-service auth on Friday — saved the demo.",
-        authorId: "u2",
-        voters: ["u2", "u3", "u4", "u5"],
+        author: { id: "u2", name: "Maya" },
+        voters: [{ id: "u2", name: "Maya" }, { id: "u3", name: "Jordan" }, { id: "u4", name: "Priya" }, { id: "u5", name: "Sam" }],
       },
       {
         id: "k12",
         body: "Jordan's runbook for hot-fixing failed pipeline runs is now the team standard.",
-        authorId: "u3",
-        voters: ["u2"],
+        author: { id: "u3", name: "Jordan" },
+        voters: [{ id: "u2", name: "Maya" }],
       },
     ],
   },
@@ -293,26 +301,26 @@ const EOS_RICH_COLUMNS: Column[] = [
       {
         id: "e-k1",
         body: "OAuth handshake worked first try in staging — credit to Wen's early prototype.",
-        authorId: "u6",
-        voters: ["u2", "u3", "u4", "u5"],
+        author: { id: "u6", name: "Wen" },
+        voters: [{ id: "u2", name: "Maya" }, { id: "u3", name: "Jordan" }, { id: "u4", name: "Priya" }, { id: "u5", name: "Sam" }],
       },
       {
         id: "e-k2",
         body: "OpenAPI spec → typed client generation cut frontend integration time in half.",
-        authorId: "u4",
-        voters: ["u2", "u3"],
+        author: { id: "u4", name: "Priya" },
+        voters: [{ id: "u2", name: "Maya" }, { id: "u3", name: "Jordan" }],
       },
       {
         id: "e-k3",
         body: "Postman collection lives in the repo now; new hires got productive on day 1.",
-        authorId: "u3",
-        voters: ["u4"],
+        author: { id: "u3", name: "Jordan" },
+        voters: [{ id: "u4", name: "Priya" }],
       },
       {
         id: "e-k4",
         body: "Code review SLA stayed under 4 hours all sprint.",
-        authorId: "u2",
-        voters: ["u2", "u7"],
+        author: { id: "u2", name: "Maya" },
+        voters: [{ id: "u2", name: "Maya" }, { id: "u7", name: "Theo" }],
       },
     ],
   },
@@ -324,20 +332,20 @@ const EOS_RICH_COLUMNS: Column[] = [
       {
         id: "e-k5",
         body: "Local dev still requires manual port-forwarding to the Redis sidecar — fragile.",
-        authorId: "u7",
-        voters: ["u2", "u3", "u4", "u6"],
+        author: { id: "u7", name: "Theo" },
+        voters: [{ id: "u2", name: "Maya" }, { id: "u3", name: "Jordan" }, { id: "u4", name: "Priya" }, { id: "u6", name: "Wen" }],
       },
       {
         id: "e-k6",
         body: "API contract churn — endpoint shape changed twice mid-sprint, frontend rebuilt twice.",
-        authorId: "u4",
-        voters: ["u3", "u5"],
+        author: { id: "u4", name: "Priya" },
+        voters: [{ id: "u3", name: "Jordan" }, { id: "u5", name: "Sam" }],
       },
       {
         id: "e-k7",
         body: "Three flaky integration tests muted again this sprint.",
-        authorId: "u3",
-        voters: ["u6", "u7"],
+        author: { id: "u3", name: "Jordan" },
+        voters: [{ id: "u6", name: "Wen" }, { id: "u7", name: "Theo" }],
       },
     ],
   },
@@ -349,20 +357,20 @@ const EOS_RICH_COLUMNS: Column[] = [
       {
         id: "e-k8",
         body: "Lock the contract before frontend starts — schema PR must merge first.",
-        authorId: "u4",
-        voters: ["u3", "u5", "u2"],
+        author: { id: "u4", name: "Priya" },
+        voters: [{ id: "u3", name: "Jordan" }, { id: "u5", name: "Sam" }, { id: "u2", name: "Maya" }],
       },
       {
         id: "e-k9",
         body: "Fix or delete the muted tests — no more skipping.",
-        authorId: "u3",
-        voters: ["u6", "u7"],
+        author: { id: "u3", name: "Jordan" },
+        voters: [{ id: "u6", name: "Wen" }, { id: "u7", name: "Theo" }],
       },
       {
         id: "e-k10",
         body: "Docker-compose target for the full stack so port-forwarding is one command.",
-        authorId: "u7",
-        voters: ["u4", "u2"],
+        author: { id: "u7", name: "Theo" },
+        voters: [{ id: "u4", name: "Priya" }, { id: "u2", name: "Maya" }],
       },
     ],
   },
@@ -374,14 +382,14 @@ const EOS_RICH_COLUMNS: Column[] = [
       {
         id: "e-k11",
         body: "Theo's load-test harness caught a connection-pool leak before staging deploy.",
-        authorId: "u2",
-        voters: ["u2", "u3", "u4", "u6"],
+        author: { id: "u2", name: "Maya" },
+        voters: [{ id: "u2", name: "Maya" }, { id: "u3", name: "Jordan" }, { id: "u4", name: "Priya" }, { id: "u6", name: "Wen" }],
       },
       {
         id: "e-k12",
         body: "Priya rewrote the auth error responses — much clearer for frontend.",
-        authorId: "u3",
-        voters: ["u4"],
+        author: { id: "u3", name: "Jordan" },
+        voters: [{ id: "u4", name: "Priya" }],
       },
     ],
   },

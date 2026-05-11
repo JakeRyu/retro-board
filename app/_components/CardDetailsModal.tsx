@@ -4,13 +4,13 @@ import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Avatar, Icon } from "./Primitives";
 import { ActionList } from "./ActionList";
 import { formatRelativeTime } from "../_lib/relativeTime";
-import type { Card, User } from "../_data/retro";
+import type { Card, Voter } from "../_data/retro";
+import { colorFromName, initialsFromName } from "../_lib/avatar";
 
 const URL_REGEX = /\bhttps?:\/\/\S+/g;
 
 type CardDetailsModalProps = {
   card: Card;
-  users: User[];
   /** Signed-in Entra user's id. Drives the vote-toggled state for the user's
    *  own vote. Empty string while session is still resolving. */
   currentUserId: string;
@@ -41,7 +41,6 @@ type CardDetailsModalProps = {
 // names — sub-feature CSS hangs off them.
 export function CardDetailsModal({
   card,
-  users,
   currentUserId,
   boardId,
   anonymous,
@@ -110,7 +109,7 @@ export function CardDetailsModal({
     onClose();
   };
 
-  const voted = !!currentUserId && card.voters.includes(currentUserId);
+  const voted = !!currentUserId && card.voters.some((v) => v.id === currentUserId);
   const showVoteRow = !readOnly;
 
   return (
@@ -160,7 +159,7 @@ export function CardDetailsModal({
 
           {showVoteRow && (
             <div className="cd-vote-row">
-              <Voters voterIds={card.voters} users={users} anonymous={anonymous} />
+              <Voters voters={card.voters} anonymous={anonymous} />
               <button
                 className="vote-btn"
                 data-voted={voted}
@@ -221,11 +220,7 @@ export function CardDetailsModal({
             {card.voters.length > 0 && (
               <section className="cd-side-voters">
                 <h3 className="cd-section-label">Voted by</h3>
-                <VotersList
-                  voterIds={card.voters}
-                  users={users}
-                  anonymous={anonymous}
-                />
+                <VotersList voters={card.voters} anonymous={anonymous} />
               </section>
             )}
           </aside>
@@ -239,44 +234,44 @@ export function CardDetailsModal({
 // card has no votes. In anonymous mode, names mask to "?" matching the
 // header avatar pile's existing pattern.
 function VotersList({
-  voterIds,
-  users,
+  voters,
   anonymous,
 }: {
-  voterIds: string[];
-  users: User[];
+  voters: Voter[];
   anonymous: boolean;
 }) {
   return (
     <ul className="cd-voters-list">
-      {voterIds.map((id, i) => {
-        const u = users.find((x) => x.id === id);
-        if (!u) return null;
-        return (
-          <li key={id + i} className="cd-voters-row">
-            {anonymous ? (
-              <span
-                className="avatar"
-                style={{
-                  background: "var(--surface-08)",
-                  color: "var(--fg3)",
-                  fontSize: 8,
-                  width: 18,
-                  height: 18,
-                }}
-                aria-hidden="true"
-              >
-                ?
-              </span>
-            ) : (
-              <Avatar user={u} size={18} />
-            )}
-            <span className="cd-voters-name">
-              {anonymous ? "Anonymous" : u.name}
+      {voters.map((v, i) => (
+        <li key={v.id + i} className="cd-voters-row">
+          {anonymous ? (
+            <span
+              className="avatar"
+              style={{
+                background: "var(--surface-08)",
+                color: "var(--fg3)",
+                fontSize: 8,
+                width: 18,
+                height: 18,
+              }}
+              aria-hidden="true"
+            >
+              ?
             </span>
-          </li>
-        );
-      })}
+          ) : (
+            <Avatar
+              user={{
+                initials: initialsFromName(v.name),
+                color: colorFromName(v.name),
+              }}
+              size={18}
+            />
+          )}
+          <span className="cd-voters-name">
+            {anonymous ? "Anonymous" : v.name}
+          </span>
+        </li>
+      ))}
     </ul>
   );
 }
@@ -284,26 +279,22 @@ function VotersList({
 // Local copy of the Voters pile — same visual as Card.tsx's voter row, but
 // kept private here so the modal doesn't depend on Card's internal exports.
 function Voters({
-  voterIds,
-  users,
+  voters,
   anonymous,
 }: {
-  voterIds: string[];
-  users: User[];
+  voters: Voter[];
   anonymous: boolean;
 }) {
   const max = 6;
-  const shown = voterIds.slice(0, max);
-  const overflow = voterIds.length - shown.length;
+  const shown = voters.slice(0, max);
+  const overflow = voters.length - shown.length;
   return (
     <div className="voters">
-      {shown.map((id, i) => {
-        const u = users.find((x) => x.id === id);
-        if (!u) return null;
+      {shown.map((v, i) => {
         if (anonymous) {
           return (
             <span
-              key={id + i}
+              key={v.id + i}
               className="avatar"
               style={{
                 background: "var(--surface-08)",
@@ -315,7 +306,16 @@ function Voters({
             </span>
           );
         }
-        return <Avatar key={id + i} user={u} size={18} />;
+        return (
+          <Avatar
+            key={v.id + i}
+            user={{
+              initials: initialsFromName(v.name),
+              color: colorFromName(v.name),
+            }}
+            size={18}
+          />
+        );
       })}
       {overflow > 0 && <span className="voters-more">+{overflow}</span>}
     </div>

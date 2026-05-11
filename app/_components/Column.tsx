@@ -9,7 +9,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Card } from "./Card";
 import { Icon } from "./Primitives";
-import type { Card as CardType, Column as ColumnType, User } from "../_data/retro";
+import type { Card as CardType, Column as ColumnType } from "../_data/retro";
 import { useAddCardRequest } from "../_hooks/useAddCardRequest";
 
 const MAX_TITLE = 60;
@@ -17,7 +17,6 @@ const MAX_DESC = 200;
 
 export type ColumnProps = {
   col: ColumnType;
-  users: User[];
   /** Signed-in Entra user's id. Empty string before the session resolves;
    *  child components fall back to no "this is your" affordances when empty. */
   currentUserId: string;
@@ -101,7 +100,6 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
   function ColumnView(
     {
       col,
-      users,
       currentUserId,
       anonymous,
       focused,
@@ -490,7 +488,6 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
                 <Card
                   key={c.id}
                   card={c}
-                  users={users}
                   currentUserId={currentUserId}
                   anonymous={anonymous}
                   isTopVoted={focused && sortByVotes && c.id === topId}

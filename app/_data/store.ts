@@ -6,6 +6,7 @@ import type {
   Card,
   ActionItem,
   Column,
+  Voter,
 } from "./retro";
 import { BOARD_COLORS, DEFAULT_WORKSPACE_ID, WORKSPACES } from "./retro";
 import { fireToast } from "../_hooks/useToast";
@@ -355,27 +356,28 @@ export const storeActions = {
     updateColumns(() => cols);
   },
 
-  toggleVote(cardId: string, voterId: string) {
+  toggleVote(cardId: string, voter: Voter) {
     updateColumns((cols) =>
       cols.map((c) => ({
         ...c,
         cards: c.cards.map((card) => {
           if (card.id !== cardId) return card;
-          const has = card.voters.includes(voterId);
+          const idx = card.voters.findIndex((v) => v.id === voter.id);
           return {
             ...card,
-            voters: has
-              ? card.voters.filter((v) => v !== voterId)
-              : [...card.voters, voterId],
+            voters:
+              idx >= 0
+                ? card.voters.filter((_, i) => i !== idx)
+                : [...card.voters, voter],
           };
         }),
       })),
     );
   },
 
-  addCard(colId: string, body: string, authorId: string): string {
+  addCard(colId: string, body: string, author: Voter): string {
     const id = "n" + Date.now();
-    const card: Card = { id, body, authorId, voters: [] };
+    const card: Card = { id, body, author, voters: [] };
     updateColumns((cols) =>
       cols.map((c) =>
         c.id === colId ? { ...c, cards: [card, ...c.cards] } : c,
