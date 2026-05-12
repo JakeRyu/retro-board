@@ -10,6 +10,7 @@ import type { Board } from "../_data/retro";
 import { initialsFromName, colorFromName } from "../_lib/avatar";
 import { Avatar, Icon } from "./Primitives";
 import { CreateBoardDialog } from "./CreateBoardDialog";
+import { SearchDialog } from "./SearchDialog";
 import { GlobalShortcuts } from "./GlobalShortcuts";
 import { ShortcutsCheatSheet } from "./ShortcutsCheatSheet";
 import { Toast } from "./Toast";
@@ -17,6 +18,11 @@ import {
   openCreateBoardDialog,
   useCreateBoardDialogHost,
 } from "../_hooks/useCreateBoardDialog";
+import {
+  openSearchDialog,
+  useSearchDialogHost,
+} from "../_hooks/useSearchDialog";
+import { useIsMac } from "../_hooks/useIsMac";
 
 function cardCount(b: Board): number {
   return b.columns.reduce((n, c) => n + c.cards.length, 0);
@@ -27,6 +33,8 @@ export function Sidebar() {
   const pathname = usePathname() ?? "/";
   const router = useRouter();
   const dialog = useCreateBoardDialogHost();
+  const searchDialog = useSearchDialogHost();
+  const isMac = useIsMac();
 
   const activeWorkspace =
     WORKSPACES.find((w) => w.id === activeWorkspaceId) ?? WORKSPACES[0];
@@ -139,12 +147,14 @@ export function Sidebar() {
 
       <div className="side-section">
         <button
+          type="button"
           className="btn btn-subtle"
           style={{ width: "100%", justifyContent: "flex-start", height: 28 }}
+          onClick={(e) => openSearchDialog(e.currentTarget)}
         >
           <Icon name="search" size={13} /> Search
           <span style={{ marginLeft: "auto" }} className="kbd">
-            ⌘K
+            {isMac ? "⌘K" : "Ctrl+K"}
           </span>
         </button>
 
@@ -199,6 +209,7 @@ export function Sidebar() {
         <SidebarUser />
       </div>
       <CreateBoardDialog open={dialog.open} onClose={dialog.close} />
+      <SearchDialog open={searchDialog.open} onClose={searchDialog.close} />
       <ShortcutsCheatSheet />
       <GlobalShortcuts />
       <Toast />
