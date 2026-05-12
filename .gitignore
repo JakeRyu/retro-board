@@ -9,6 +9,8 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+# Project uses bun (bun.lock); npm-generated lockfile is a stray.
+package-lock.json
 
 # testing
 /coverage
