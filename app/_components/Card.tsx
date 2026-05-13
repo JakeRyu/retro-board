@@ -348,7 +348,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
               }}
               size={16}
             />
-            <span>{author.name}</span>
+            <span>{author.name.split(/\s+/)[0]}</span>
           </span>
         )}
         <div className="vote-row">
