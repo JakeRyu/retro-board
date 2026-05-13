@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { boardsContainer, stripSystemFields } from "@/lib/cosmos";
+import { touch as touchPresence } from "@/lib/presence";
 import type { Board } from "@/app/_data/retro";
 
 export const runtime = "nodejs";
@@ -38,6 +39,13 @@ export async function GET(
   }
 
   const { id } = await ctx.params;
+  // Heartbeat: every poll of the active board doubles as a presence ping.
+  // Lives in the GET handler (before the 304 short-circuit) so a board
+  // whose state hasn't changed still keeps the viewer in the active set.
+  if (session.user.id && session.user.name) {
+    touchPresence(id, session.user.id, session.user.name);
+  }
+
   const board = await findBoardById(id);
   if (!board) {
     return Response.json({ error: "Not found" }, { status: 404 });

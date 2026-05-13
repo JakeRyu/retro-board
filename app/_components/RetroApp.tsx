@@ -34,9 +34,10 @@ import { Sidebar } from "./Sidebar";
 import { Avatar, Icon } from "./Primitives";
 import { useSession } from "next-auth/react";
 import type { Board, Card as CardType, Column as ColumnT, Voter } from "../_data/retro";
-import { USERS } from "../_data/retro";
+import { initialsFromName, colorFromName } from "../_lib/avatar";
 import { storeActions, useBoard, useBoardPolling } from "../_data/store";
 import { useIsOwner } from "../_hooks/useIsOwner";
+import { usePresencePolling } from "../_hooks/usePresencePolling";
 import { fireToast } from "../_hooks/useToast";
 import { useOverlayDismiss } from "../_hooks/useOverlayDismiss";
 import { requestAddCard } from "../_hooks/useAddCardRequest";
@@ -168,6 +169,10 @@ function RetroAppLoaded({ board }: { board: Board }) {
     return { id, name };
   }, [session?.user?.id, session?.user?.name]);
   const currentUserId = currentUser?.id ?? "";
+
+  // Who else is viewing this board right now. Refreshed every 5s; the
+  // heartbeat is the existing 1.5s board GET, so this hook only reads.
+  const presenceUsers = usePresencePolling(board.id);
 
   const [anonymous, setAnonymous] = useState(false);
   const [themeOpen, setThemeOpen] = useState(true);
@@ -916,12 +921,23 @@ function RetroAppLoaded({ board }: { board: Board }) {
               alignItems: "center",
             }}
           >
-            <div className="presence">
-              {USERS.slice(0, 5).map((u) => (
-                <Avatar key={u.id} user={u} size={22} />
-              ))}
-              <span className="more">+2</span>
-            </div>
+            {presenceUsers.length > 0 && (
+              <div className="presence">
+                {presenceUsers.slice(0, 5).map((u) => (
+                  <Avatar
+                    key={u.id}
+                    user={{
+                      initials: initialsFromName(u.name),
+                      color: colorFromName(u.name),
+                    }}
+                    size={22}
+                  />
+                ))}
+                {presenceUsers.length > 5 && (
+                  <span className="more">+{presenceUsers.length - 5}</span>
+                )}
+              </div>
+            )}
 
             {!closed && (
               <button
