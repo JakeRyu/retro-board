@@ -347,6 +347,9 @@ function RetroAppLoaded({ board }: { board: Board }) {
 
   // F-23: gather action items from all live non-Action columns, sorted by
   // column position → vote count desc → item order, and build Action cards.
+  // Skip items already checked off — Finish Discussion should pick up only
+  // outstanding work, so a re-run after partial completion doesn't dredge up
+  // items the team has already handled.
   const gatherActionCards = useCallback((): import("../_data/retro").Card[] => {
     const liveColumns = columns.filter((c) => c.kind !== "action");
     const result: import("../_data/retro").Card[] = [];
@@ -356,6 +359,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
       );
       for (const card of sorted) {
         for (const item of card.actionItems ?? []) {
+          if (item.done) continue;
           result.push({
             id: crypto.randomUUID(),
             body: item.text,
