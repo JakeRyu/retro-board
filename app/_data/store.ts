@@ -362,6 +362,10 @@ export const storeActions = {
         ...c,
         cards: c.cards.map((card) => {
           if (card.id !== cardId) return card;
+          // Authors can't vote on their own cards. UI already hides the
+          // button; this guard keeps the rule when the action is invoked
+          // programmatically (keyboard, future API, etc.).
+          if (card.author.id === voter.id) return card;
           const idx = card.voters.findIndex((v) => v.id === voter.id);
           return {
             ...card,

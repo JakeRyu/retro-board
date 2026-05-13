@@ -373,10 +373,10 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
           {!isActionCol && (
             <Voters voters={card.voters} anonymous={anonymous} />
           )}
-          {!isActionCol && !readOnly && (
+          {!isActionCol && !readOnly && !isMine && (
             <VoteButton count={card.voters.length} voted={voted} onClick={() => onVote(card.id)} />
           )}
-          {!isActionCol && readOnly && (
+          {!isActionCol && (readOnly || isMine) && (
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg4)" }}>
               {card.voters.length}▲
             </span>

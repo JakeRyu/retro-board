@@ -110,6 +110,7 @@ export function CardDetailsModal({
   };
 
   const voted = !!currentUserId && card.voters.some((v) => v.id === currentUserId);
+  const isMine = !!currentUserId && card.author.id === currentUserId;
   const showVoteRow = !readOnly;
 
   return (
@@ -160,17 +161,23 @@ export function CardDetailsModal({
           {showVoteRow && (
             <div className="cd-vote-row">
               <Voters voters={card.voters} anonymous={anonymous} />
-              <button
-                className="vote-btn"
-                data-voted={voted}
-                onClick={() => onVote(card.id)}
-                onPointerDown={(e) => e.stopPropagation()}
-                title={voted ? "Click to remove your vote." : "Vote on this card"}
-                type="button"
-              >
-                <span className="arr">▲</span>
-                <span>{card.voters.length}</span>
-              </button>
+              {isMine ? (
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--fg4)" }}>
+                  {card.voters.length}▲
+                </span>
+              ) : (
+                <button
+                  className="vote-btn"
+                  data-voted={voted}
+                  onClick={() => onVote(card.id)}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  title={voted ? "Click to remove your vote." : "Vote on this card"}
+                  type="button"
+                >
+                  <span className="arr">▲</span>
+                  <span>{card.voters.length}</span>
+                </button>
+              )}
             </div>
           )}
         </header>
