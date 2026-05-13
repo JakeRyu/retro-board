@@ -348,10 +348,7 @@ export const CardView = forwardRef<HTMLDivElement, CardViewProps>(function CardV
               }}
               size={16}
             />
-            <span>
-              {author.name}
-              {isMine ? " · you" : ""}
-            </span>
+            <span>{author.name}</span>
           </span>
         )}
         <div className="vote-row">
