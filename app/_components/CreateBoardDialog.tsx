@@ -150,6 +150,10 @@ export function CreateBoardDialog({ open, onClose }: Props) {
     }
   };
 
+  // dd/MM/yyyy — UK format matches the BW org's date convention.
+  const today = new Date();
+  const titlePlaceholder = `e.g. Sprint ${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+
   const showCounter = title.length >= 60;
   const counterTone =
     title.length > TITLE_MAX
@@ -195,7 +199,7 @@ export function CreateBoardDialog({ open, onClose }: Props) {
             type="text"
             className={"add-card-input field-input" + (error ? " has-error" : "")}
             value={title}
-            placeholder="e.g. Sprint 25 — payments v3"
+            placeholder={titlePlaceholder}
             onChange={(e) => {
               setTitle(e.target.value);
               if (error) setError(null);
