@@ -14,7 +14,14 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Retro Board — Sprint 24 · checkout v2",
+  // `default` covers routes without their own title (e.g. the boards list);
+  // `template` lets per-board pages supply just the board name. Previously this
+  // was a hardcoded string, so every board URL unfurled with the same fixed
+  // title in Slack/Teams regardless of which board it pointed at.
+  title: {
+    default: "Retro Board",
+    template: "%s · Retro Board",
+  },
   description: "Sprint retrospective board",
 };
 
