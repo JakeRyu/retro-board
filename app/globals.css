@@ -330,6 +330,13 @@ button {
 .side-section {
   padding: 14px 12px 4px;
 }
+/* Separates the global Search row from the retro-scoped rows (All retros,
+   Create retro) that follow it in the first sidebar section. */
+.side-divider {
+  height: 1px;
+  margin: 8px 8px 2px;
+  background: var(--border-subtle);
+}
 .side-head {
   font-size: 10px;
   font-weight: 510;
@@ -1786,17 +1793,21 @@ textarea.field-input {
   opacity: 0.7;
 }
 
-/* Sidebar create-board row. */
+/* Sidebar create-board row — styled as a primary CTA (filled indigo, the
+   same accent as the boards-list page's Create retro button) so it stands
+   out from the navigation and board rows around it. */
 .side-item-create {
   width: 100%;
-  background: transparent;
+  margin-top: 6px;
+  background: var(--brand-indigo);
   text-align: left;
   font-family: inherit;
-  color: var(--fg3);
+  font-weight: 560;
+  color: #fff;
 }
 .side-item-create:hover {
-  color: var(--fg1);
-  background: var(--surface-04);
+  color: #fff;
+  background: var(--brand-violet-hi);
 }
 .side-create-glyph {
   width: 14px;
@@ -1807,7 +1818,7 @@ textarea.field-input {
   font-size: 14px;
   font-weight: 510;
   line-height: 1;
-  color: var(--brand-violet-hi);
+  color: currentColor;
   flex-shrink: 0;
 }
 

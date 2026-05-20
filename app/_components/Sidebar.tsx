@@ -80,15 +80,22 @@ export function Sidebar() {
   const activeBoards = boards.filter(
     (b) => !b.archivedAt && b.workspaceId === activeWorkspace.id,
   );
-  // Starred retros first; otherwise stable input order.
-  const sorted = activeBoards
-    .slice()
-    .sort((a, b) => (a.starred !== b.starred ? (a.starred ? -1 : 1) : 0));
-  // Closed retros drop to their own group at the bottom. Starred boards stay
-  // on top regardless of state — matching the boards-list page's partition,
-  // where starred takes precedence over closed.
-  const openRetros = sorted.filter((b) => b.starred || b.state !== "closed");
-  const closedRetros = sorted.filter(
+  // Three sidebar groups, mirroring the boards-list page's partition:
+  // Starred (any state) → Retros (open) → Closed. Starred takes precedence,
+  // so a starred board never also appears under Retros or Closed. The
+  // Starred group orders most-recently-starred first (same as the boards
+  // list); the other two keep stable input order.
+  const starredRetros = activeBoards
+    .filter((b) => b.starred)
+    .sort((a, b) => {
+      const at = a.starredAt ?? a.updatedAt;
+      const bt = b.starredAt ?? b.updatedAt;
+      return bt.localeCompare(at);
+    });
+  const openRetros = activeBoards.filter(
+    (b) => !b.starred && b.state !== "closed",
+  );
+  const closedRetros = activeBoards.filter(
     (b) => !b.starred && b.state === "closed",
   );
 
@@ -211,6 +218,8 @@ export function Sidebar() {
           </span>
         </button>
 
+        <div className="side-divider" role="separator" />
+
         <Link
           href="/"
           className={
@@ -221,10 +230,7 @@ export function Sidebar() {
           <Icon name="board" size={15} /> All retros
           <span className="count">{activeBoards.length}</span>
         </Link>
-      </div>
 
-      <div className="side-section">
-        <div className="side-head">Retros</div>
         <button
           type="button"
           className="side-item side-item-create"
@@ -235,14 +241,33 @@ export function Sidebar() {
           </span>
           Create retro
         </button>
-        {openRetros.map((b) => (
-          <SidebarBoardLink
-            key={b.id}
-            board={b}
-            active={b.id === activeBoardId}
-          />
-        ))}
       </div>
+
+      {starredRetros.length > 0 && (
+        <div className="side-section">
+          <div className="side-head">Starred</div>
+          {starredRetros.map((b) => (
+            <SidebarBoardLink
+              key={b.id}
+              board={b}
+              active={b.id === activeBoardId}
+            />
+          ))}
+        </div>
+      )}
+
+      {openRetros.length > 0 && (
+        <div className="side-section">
+          <div className="side-head">Open retros</div>
+          {openRetros.map((b) => (
+            <SidebarBoardLink
+              key={b.id}
+              board={b}
+              active={b.id === activeBoardId}
+            />
+          ))}
+        </div>
+      )}
 
       {closedRetros.length > 0 && (
         <div className="side-section">
