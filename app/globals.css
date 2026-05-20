@@ -350,6 +350,11 @@ button {
   cursor: pointer;
   line-height: 1.2;
 }
+/* Closed retros: muted label so the open list reads as the primary content.
+   Placed before :hover / .active so those still brighten on interaction. */
+.side-item.closed {
+  color: var(--fg3);
+}
 .side-item:hover {
   background: var(--surface-04);
   color: var(--fg1);

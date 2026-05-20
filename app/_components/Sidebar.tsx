@@ -28,6 +28,42 @@ function cardCount(b: Board): number {
   return b.columns.reduce((n, c) => n + c.cards.length, 0);
 }
 
+// A single retro entry in the sidebar list. Closed retros render muted — a
+// dimmed label plus a hollow (ring-only) color swatch — so the open work the
+// sidebar is mostly used for stays visually dominant.
+function SidebarBoardLink({
+  board,
+  active,
+}: {
+  board: Board;
+  active: boolean;
+}) {
+  const count = cardCount(board);
+  const isClosed = board.state === "closed";
+  return (
+    <Link
+      href={`/boards/${board.id}`}
+      className={
+        "side-item" + (isClosed ? " closed" : "") + (active ? " active" : "")
+      }
+    >
+      <span
+        className="swatch"
+        style={
+          isClosed
+            ? {
+                background: "transparent",
+                boxShadow: `inset 0 0 0 1.5px ${board.color}`,
+              }
+            : { background: board.color }
+        }
+      />
+      {board.title}
+      <span className="count">{count > 0 ? count : "·"}</span>
+    </Link>
+  );
+}
+
 export function Sidebar() {
   const { boards, activeWorkspaceId } = useStore();
   const pathname = usePathname() ?? "/";
@@ -44,13 +80,17 @@ export function Sidebar() {
   const activeBoards = boards.filter(
     (b) => !b.archivedAt && b.workspaceId === activeWorkspace.id,
   );
-  const retros = activeBoards
+  // Starred retros first; otherwise stable input order.
+  const sorted = activeBoards
     .slice()
-    .sort((a, b) => {
-      // Starred retros first; otherwise stable input order.
-      if (a.starred !== b.starred) return a.starred ? -1 : 1;
-      return 0;
-    });
+    .sort((a, b) => (a.starred !== b.starred ? (a.starred ? -1 : 1) : 0));
+  // Closed retros drop to their own group at the bottom. Starred boards stay
+  // on top regardless of state — matching the boards-list page's partition,
+  // where starred takes precedence over closed.
+  const openRetros = sorted.filter((b) => b.starred || b.state !== "closed");
+  const closedRetros = sorted.filter(
+    (b) => !b.starred && b.state === "closed",
+  );
 
   const boardIdMatch = pathname.match(/^\/boards\/([^/]+)/);
   const activeBoardId = boardIdMatch?.[1];
@@ -195,22 +235,27 @@ export function Sidebar() {
           </span>
           Create retro
         </button>
-        {retros.map((b) => {
-          const isActive = b.id === activeBoardId;
-          const count = cardCount(b);
-          return (
-            <Link
-              key={b.id}
-              href={`/boards/${b.id}`}
-              className={"side-item" + (isActive ? " active" : "")}
-            >
-              <span className="swatch" style={{ background: b.color }} />
-              {b.title}
-              <span className="count">{count > 0 ? count : "·"}</span>
-            </Link>
-          );
-        })}
+        {openRetros.map((b) => (
+          <SidebarBoardLink
+            key={b.id}
+            board={b}
+            active={b.id === activeBoardId}
+          />
+        ))}
       </div>
+
+      {closedRetros.length > 0 && (
+        <div className="side-section">
+          <div className="side-head">Closed</div>
+          {closedRetros.map((b) => (
+            <SidebarBoardLink
+              key={b.id}
+              board={b}
+              active={b.id === activeBoardId}
+            />
+          ))}
+        </div>
+      )}
 
       <div
         style={{
