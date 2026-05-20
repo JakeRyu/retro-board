@@ -22,7 +22,6 @@ export type ColumnProps = {
   currentUserId: string;
   anonymous: boolean;
   focused: boolean;
-  sortByVotes: boolean;
   readOnly: boolean;
   /** Discussion mode is in progress — block structural mutations. */
   discussion: boolean;
@@ -103,7 +102,6 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
       currentUserId,
       anonymous,
       focused,
-      sortByVotes,
       readOnly,
       discussion,
       canEdit,
@@ -252,10 +250,23 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
       setEditingDesc(false);
     };
 
-    const cards = sortByVotes
-      ? [...col.cards].sort((a, b) => b.voters.length - a.voters.length)
-      : col.cards;
-    const topId = cards.length && cards[0].voters.length > 0 ? cards[0].id : null;
+    // Cards always render in their stored (manual) order — drag / keyboard
+    // reorder is authoritative. No vote sorting anywhere, including the
+    // discussion-mode focused column.
+    const cards = col.cards;
+    // Discussion mode flags the focused column's most-voted card(s). The flag
+    // is decoupled from order now that we never sort: scan for the max vote
+    // count and mark every card that hits it (ties all get the flag). Cards
+    // with zero votes are never flagged.
+    const maxVotes = focused
+      ? cards.reduce((m, c) => Math.max(m, c.voters.length), 0)
+      : 0;
+    const topVotedIds =
+      maxVotes > 0
+        ? new Set(
+            cards.filter((c) => c.voters.length === maxVotes).map((c) => c.id),
+          )
+        : null;
 
     const headTabIndex =
       dndEnabled && !editingTitle && !isFollower ? 0 : -1;
@@ -490,7 +501,7 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
                   card={c}
                   currentUserId={currentUserId}
                   anonymous={anonymous}
-                  isTopVoted={focused && sortByVotes && c.id === topId}
+                  isTopVoted={topVotedIds?.has(c.id) ?? false}
                   isNew={newIds.has(c.id)}
                   readOnly={readOnly}
                   dndEnabled={dndEnabled}

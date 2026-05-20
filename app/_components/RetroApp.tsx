@@ -498,9 +498,8 @@ function RetroAppLoaded({ board }: { board: Board }) {
   }, [discussion, next, prev, exitDiscussion, openCardId]);
 
   // F-19 board-scoped shortcut: `c` focuses the first column's add-card
-  // composer. Suppressed in discussion mode (`c` would be ambiguous when
-  // columns are sort-by-votes), in read-only/closed boards (no add
-  // affordance), and when the user is typing in a field.
+  // composer. Suppressed in discussion mode, in read-only/closed boards (no
+  // add affordance), and when the user is typing in a field.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -848,7 +847,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
         currentUserId={currentUserId}
         anonymous={anonymous}
         focused={false}
-        sortByVotes={false}
         readOnly={closed}
         discussion={discussion}
         canEdit={false}
@@ -1006,7 +1004,7 @@ function RetroAppLoaded({ board }: { board: Board }) {
             <div className="nav">
               <span className="meta">
                 {focusedCol.cards.length}{" "}
-                {focusedCol.cards.length === 1 ? "card" : "cards"} · sorted by votes
+                {focusedCol.cards.length === 1 ? "card" : "cards"} · top voted ★
               </span>
               <button
                 className="btn btn-ghost"
@@ -1098,7 +1096,6 @@ function RetroAppLoaded({ board }: { board: Board }) {
                               currentUserId={currentUserId}
                     anonymous={anonymous}
                     focused={discussion && col.id === focusColId}
-                    sortByVotes={discussion && col.id === focusColId}
                     readOnly={closed}
                     discussion={discussion}
                     canEdit={isOwner}
