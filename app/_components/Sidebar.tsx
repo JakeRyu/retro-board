@@ -58,6 +58,19 @@ export function Sidebar() {
   const [wsMenuOpen, setWsMenuOpen] = useState(false);
   const wsRef = useRef<HTMLDivElement | null>(null);
 
+  // Ensure the store holds the full board list for the active workspace.
+  // The sidebar (retro list + "All retros" count) renders on board pages
+  // too, but a board page only fetches the single board being viewed
+  // (RetroApp → fetchBoardById). Landing on a board URL directly — a
+  // refresh or a shared link — would otherwise leave the store holding
+  // just that one board and the sidebar showing an incomplete list. The
+  // boards-list page also fetches this; the overlap is a harmless GET.
+  useEffect(() => {
+    void storeActions
+      .fetchBoardsForWorkspace(activeWorkspace.id)
+      .catch(() => {});
+  }, [activeWorkspace.id]);
+
   // Click-away + Esc dismiss for the workspace switcher dropdown.
   useEffect(() => {
     if (!wsMenuOpen) return;
