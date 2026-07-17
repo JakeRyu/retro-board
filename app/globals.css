@@ -67,6 +67,49 @@
     rgba(0, 0, 0, 0) 0px 8px 2px, rgba(0, 0, 0, 0.01) 0px 5px 2px,
     rgba(0, 0, 0, 0.04) 0px 3px 2px, rgba(0, 0, 0, 0.07) 0px 1px 1px,
     rgba(0, 0, 0, 0.08) 0px 0px 1px;
+
+  /* ============================================================
+     Semantic tokens (theme-overridable)
+     These wrap literals that used to be hardcoded at call sites so a future
+     light theme can override them in one place. Every value below reproduces
+     the current dark appearance exactly — no visual change on its own.
+     ============================================================ */
+
+  /* Foreground that sits on a saturated brand/danger fill (button label,
+     avatar initials, toggle knob, checkbox tick). */
+  --fg-on-accent: #fff;
+
+  /* Extra white-tint border, one step stronger than --border-standard. */
+  --border-strong: rgba(255, 255, 255, 0.1);
+
+  /* Accent (indigo) derived fills / borders / rings. */
+  --accent-ring: rgba(94, 106, 210, 0.15);
+  --accent-halo: rgba(94, 106, 210, 0.18);
+  --accent-fill-soft: rgba(94, 106, 210, 0.06);
+  --accent-fill: rgba(94, 106, 210, 0.08);
+  --accent-fill-strong: rgba(94, 106, 210, 0.12);
+  --accent-fill-active: rgba(94, 106, 210, 0.28);
+  --accent-border-soft: rgba(94, 106, 210, 0.2);
+  --accent-border: rgba(94, 106, 210, 0.4);
+  --accent-border-strong: rgba(94, 106, 210, 0.55);
+  --accent-line: rgba(94, 106, 210, 0.6);
+
+  /* Danger derived fills / borders / rings. */
+  --danger-fill-soft: rgba(217, 119, 119, 0.08);
+  --danger-fill: rgba(217, 119, 119, 0.1);
+  --danger-border: rgba(217, 119, 119, 0.3);
+  --danger-ring: rgba(217, 119, 119, 0.18);
+
+  /* Status (emerald) derived. */
+  --status-emerald-fill: rgba(16, 185, 129, 0.06);
+  --status-emerald-border: rgba(16, 185, 129, 0.25);
+
+  /* Elevation shadow colors (numbered by opacity ×100). */
+  --shadow-c-30: rgba(0, 0, 0, 0.3);
+  --shadow-c-40: rgba(0, 0, 0, 0.4);
+  --shadow-c-45: rgba(0, 0, 0, 0.45);
+  --shadow-c-50: rgba(0, 0, 0, 0.5);
+  --shadow-c-60: rgba(0, 0, 0, 0.6);
 }
 
 /* ============================================================
@@ -105,7 +148,7 @@ button {
 
 ::selection {
   background: var(--brand-violet);
-  color: #fff;
+  color: var(--fg-on-accent);
 }
 
 /* ---------- buttons (mirroring BW Trello) ---------- */
@@ -129,8 +172,8 @@ button {
 }
 .btn-primary {
   background: var(--brand-indigo);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--fg-on-accent);
+  border-color: var(--border-standard);
 }
 .btn-primary:hover {
   background: var(--brand-violet-hi);
@@ -195,14 +238,14 @@ button {
   border: 1px solid var(--border-1);
 }
 .btn-danger-ghost:hover {
-  background: rgba(217, 119, 119, 0.08);
+  background: var(--danger-fill-soft);
   color: var(--danger-hi);
-  border-color: rgba(217, 119, 119, 0.3);
+  border-color: var(--danger-border);
 }
 .btn-danger {
   background: var(--danger);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.08);
+  color: var(--fg-on-accent);
+  border-color: var(--border-standard);
 }
 .btn-danger:hover {
   background: var(--danger-hi);
@@ -267,7 +310,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--fg-on-accent);
   font-size: 10px;
   font-weight: 600;
   flex-shrink: 0;
@@ -315,7 +358,7 @@ button {
   border-radius: 4px;
   font-size: 9px;
   font-weight: 600;
-  color: #fff;
+  color: var(--fg-on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -467,8 +510,8 @@ button {
 }
 .state-pill.open {
   color: var(--status-emerald);
-  border-color: rgba(16, 185, 129, 0.25);
-  background: rgba(16, 185, 129, 0.06);
+  border-color: var(--status-emerald-border);
+  background: var(--status-emerald-fill);
 }
 .state-pill.closed {
   color: var(--fg4);
@@ -546,8 +589,8 @@ button {
     background 150ms;
 }
 .anon-toggle[data-on="true"] {
-  background: rgba(94, 106, 210, 0.12);
-  border-color: rgba(94, 106, 210, 0.4);
+  background: var(--accent-fill-strong);
+  border-color: var(--accent-border);
   color: var(--brand-violet-hi);
 }
 .anon-toggle[data-on="true"] .switch {
@@ -555,7 +598,7 @@ button {
 }
 .anon-toggle[data-on="true"] .switch::after {
   left: 12px;
-  background: #fff;
+  background: var(--fg-on-accent);
 }
 
 /* ---------- theme banner ---------- */
@@ -605,8 +648,8 @@ button {
   align-items: center;
   gap: 10px;
   padding: 8px 18px;
-  background: rgba(94, 106, 210, 0.08);
-  border-bottom: 1px solid rgba(94, 106, 210, 0.2);
+  background: var(--accent-fill);
+  border-bottom: 1px solid var(--accent-border-soft);
   font-size: 12px;
   color: var(--brand-violet-hi);
   font-weight: 510;
@@ -693,7 +736,7 @@ button {
   font-weight: 590;
   letter-spacing: -0.1px;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(94, 106, 210, 0.15);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 .col-kebab-menu {
   top: 28px;
@@ -785,7 +828,7 @@ button {
 }
 .add-card-input:focus {
   border-color: var(--brand-indigo);
-  box-shadow: 0 0 0 3px rgba(94, 106, 210, 0.15);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .add-card-actions {
@@ -845,7 +888,7 @@ button {
   outline: none;
   margin-bottom: 6px;
   font-family: inherit;
-  box-shadow: 0 0 0 3px rgba(94, 106, 210, 0.15);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .card-foot {
@@ -944,8 +987,8 @@ button {
 }
 .vote-btn[data-voted="true"] {
   background: var(--brand-indigo);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--fg-on-accent);
+  border-color: var(--border-strong);
 }
 .vote-btn[data-voted="true"]:hover {
   background: var(--brand-violet-hi);
@@ -990,7 +1033,7 @@ button {
   border-radius: 8px;
   box-shadow:
     var(--shadow-dialog),
-    rgba(0, 0, 0, 0.4) 0 8px 24px;
+    var(--shadow-c-40) 0 8px 24px;
   padding: 4px;
   min-width: 140px;
 }
@@ -1010,10 +1053,10 @@ button {
   background: var(--surface-05);
 }
 .menu-item.danger {
-  color: #d97777;
+  color: var(--danger);
 }
 .menu-item.danger:hover {
-  background: rgba(217, 119, 119, 0.1);
+  background: var(--danger-fill);
 }
 
 /* add column */
@@ -1041,7 +1084,7 @@ button {
 
 /* ---------- F-23: Action column + Action card back-pointer ---------- */
 .col.action-col {
-  border-top: 2px solid rgba(94, 106, 210, 0.6);
+  border-top: 2px solid var(--accent-line);
   border-top-left-radius: 10px;
   border-top-right-radius: 10px;
 }
@@ -1071,7 +1114,7 @@ button {
   border-color: var(--brand-indigo);
   box-shadow:
     0 0 0 1px var(--brand-indigo),
-    rgba(94, 106, 210, 0.18) 0 8px 28px;
+    var(--accent-halo) 0 8px 28px;
   background: var(--surface-04);
 }
 
@@ -1145,8 +1188,8 @@ button {
   margin-bottom: 6px;
 }
 .app[data-discussion="true"] .col.focused .card.top-voted {
-  border-color: rgba(94, 106, 210, 0.4);
-  background: rgba(94, 106, 210, 0.06);
+  border-color: var(--accent-border);
+  background: var(--accent-fill-soft);
 }
 
 /* ---------- modal (close confirm) ---------- */
@@ -1174,7 +1217,7 @@ button {
   border-radius: 12px;
   box-shadow:
     var(--shadow-dialog),
-    rgba(0, 0, 0, 0.6) 0 24px 60px;
+    var(--shadow-c-60) 0 24px 60px;
   padding: 22px;
   transform: translateY(-4px);
   transition: transform 150ms;
@@ -1350,7 +1393,7 @@ button {
 }
 .cd-side-action.danger-tone:hover:not(:disabled),
 .btn-toolbar.danger-tone:hover:not(:disabled) {
-  background: rgba(217, 119, 119, 0.08);
+  background: var(--danger-fill-soft);
   color: var(--danger-hi);
 }
 
@@ -1371,7 +1414,7 @@ button {
   height: 100%;
   background: var(--bg-surface);
   border-left: 1px solid var(--border-standard);
-  box-shadow: rgba(0, 0, 0, 0.5) -16px 0 40px;
+  box-shadow: var(--shadow-c-50) -16px 0 40px;
   transform: translateX(20px);
   transition: transform 180ms ease;
 }
@@ -1499,7 +1542,7 @@ button {
   resize: none;
   min-height: 84px;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(94, 106, 210, 0.15);
+  box-shadow: 0 0 0 3px var(--accent-ring);
   font-family: inherit;
 }
 .cd-description-input:disabled {
@@ -1529,7 +1572,7 @@ button {
 }
 
 .cd-action-items.discussion-active {
-  border-left: 2px solid rgba(94, 106, 210, 0.55);
+  border-left: 2px solid var(--accent-border-strong);
   padding-left: 10px;
   margin-left: -12px;
 }
@@ -1577,7 +1620,7 @@ button {
   top: 0px;
   width: 4px;
   height: 8px;
-  border: solid #fff;
+  border: solid var(--fg-on-accent);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
@@ -1623,7 +1666,7 @@ button {
   font: inherit;
   font-size: 13px;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(94, 106, 210, 0.15);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .action-item-del {
@@ -1670,7 +1713,7 @@ button {
 }
 .action-list-add-input:focus {
   border-color: var(--brand-indigo);
-  box-shadow: 0 0 0 3px rgba(94, 106, 210, 0.15);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 @media (max-width: 640px) {
@@ -1719,7 +1762,7 @@ button {
   color: var(--fg4);
 }
 .field-helper.error {
-  color: #d97777;
+  color: var(--danger);
 }
 .field-counter {
   align-self: flex-end;
@@ -1732,7 +1775,7 @@ button {
   color: var(--brand-violet-hi);
 }
 .field-counter.danger {
-  color: #d97777;
+  color: var(--danger);
 }
 
 /* Single-line variant of .add-card-input for the title input. */
@@ -1750,11 +1793,11 @@ textarea.field-input {
   resize: vertical;
 }
 .field-input.has-error {
-  border-color: #d97777;
+  border-color: var(--danger);
 }
 .field-input.has-error:focus {
-  border-color: #d97777;
-  box-shadow: 0 0 0 3px rgba(217, 119, 119, 0.18);
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-ring);
 }
 
 /* Color swatches. */
@@ -1767,7 +1810,7 @@ textarea.field-input {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-standard);
   padding: 0;
   transition:
     transform 120ms ease,
@@ -1803,10 +1846,10 @@ textarea.field-input {
   text-align: left;
   font-family: inherit;
   font-weight: 560;
-  color: #fff;
+  color: var(--fg-on-accent);
 }
 .side-item-create:hover {
-  color: #fff;
+  color: var(--fg-on-accent);
   background: var(--brand-violet-hi);
 }
 .side-create-glyph {
@@ -1865,7 +1908,7 @@ textarea.field-input {
   font-weight: 510;
   box-shadow:
     var(--shadow-dialog),
-    rgba(0, 0, 0, 0.5) 0 12px 32px;
+    var(--shadow-c-50) 0 12px 32px;
   opacity: 0;
   pointer-events: none;
   transition: all 200ms;
@@ -1904,14 +1947,14 @@ textarea.field-input {
   height: 18px;
   border-radius: 50%;
   background: var(--brand-indigo);
-  color: #fff;
+  color: var(--fg-on-accent);
   font-size: 9px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-standard);
 }
 
 /* ---------- drag and drop (F-06) ---------- */
@@ -1924,8 +1967,8 @@ textarea.field-input {
   transform: rotate(2deg);
   opacity: 0.95;
   box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.45),
-    0 2px 6px rgba(0, 0, 0, 0.3);
+    0 12px 28px var(--shadow-c-45),
+    0 2px 6px var(--shadow-c-30);
   cursor: grabbing;
   pointer-events: none;
 }
@@ -1980,7 +2023,7 @@ textarea.field-input {
 .card:focus-visible {
   outline: 1px solid var(--brand-indigo);
   outline-offset: 2px;
-  box-shadow: 0 0 0 3px rgba(94, 106, 210, 0.15);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .dnd-live {
@@ -2391,7 +2434,7 @@ textarea.field-input {
   resize: vertical;
   min-height: 96px;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(94, 106, 210, 0.15);
+  box-shadow: 0 0 0 3px var(--accent-ring);
   font-family: inherit;
   margin-bottom: 14px;
 }
@@ -2553,7 +2596,7 @@ textarea.field-input {
   white-space: nowrap;
 }
 .search-mark {
-  background: rgba(94, 106, 210, 0.28);
+  background: var(--accent-fill-active);
   color: inherit;
   border-radius: 2px;
   padding: 0 1px;
