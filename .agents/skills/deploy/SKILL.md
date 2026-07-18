@@ -7,6 +7,17 @@ description: Deploy retro-board (Next.js + Cosmos DB) to Azure. Use when the use
 
 Target environment: BW-Sandbox-Dev-001 (`c992dc89-b663-4775-bbc5-d5a6c513793f`), resource group `rg-retro-board`, UK South. See [BW Azure memory](../../../memory/project_bw_azure.md) for the policy/network rationale.
 
+> **⚠️ FIRST, before doing anything else:** the moment a deploy is requested, remind
+> the user to activate the **Contributor** PIM role on **BW-Sandbox-Dev-001** (Portal →
+> Microsoft Entra Privileged Identity Management → My roles → Azure resources →
+> **Contributor** → Activate). Activation is per-session and expires, so it is almost
+> always the reason a deploy fails with `AuthorizationFailed` on
+> `Microsoft.Web/sites/config/list/action`. Note: the user is also eligible for
+> *Data Factory Contributor*, *User Access Administrator*, *Owner*, etc. — those do **not**
+> grant App Service deploy rights, so make sure it's specifically **Contributor** (or Owner).
+> Verify with `az role assignment list --assignee <oid> --query "[].roleDefinitionName"`
+> before running `deploy.ps1`.
+
 ## Files
 
 - `infra/main.bicep` — VNet + Cosmos (PE-only) + App Service + MI role assignment
