@@ -476,8 +476,9 @@ export const ColumnView = forwardRef<HTMLDivElement, ColumnViewProps>(
                 >
                   Cancel
                 </button>
-                <span className="hint">
-                  <span className="kbd">↵</span> save · <span className="kbd">esc</span> cancel
+                <span className="hint" aria-label="Enter to save, Escape to cancel">
+                  <span className="kbd" title="Save">↵</span> ·{" "}
+                  <span className="kbd" title="Cancel">esc</span>
                 </span>
               </div>
             </>
