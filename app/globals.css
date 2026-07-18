@@ -834,6 +834,7 @@ button {
 .add-card-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 10px;
 }
@@ -845,6 +846,8 @@ button {
   display: flex;
   gap: 6px;
   align-items: center;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ---------- card ---------- */
