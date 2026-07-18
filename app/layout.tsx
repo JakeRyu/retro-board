@@ -31,8 +31,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
       <body>
+        {/* Resolve the persisted theme onto <html> before first paint so the
+            page never flashes dark-then-light (or vice versa) on reload. Runs
+            synchronously ahead of hydration; the store is localStorage only. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var t=localStorage.getItem('retro-theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();",
+          }}
+        />
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>

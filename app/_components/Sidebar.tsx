@@ -23,6 +23,7 @@ import {
   useSearchDialogHost,
 } from "../_hooks/useSearchDialog";
 import { useIsMac } from "../_hooks/useIsMac";
+import { useTheme } from "../_hooks/useTheme";
 
 function cardCount(b: Board): number {
   return b.columns.reduce((n, c) => n + c.cards.length, 0);
@@ -289,6 +290,7 @@ export function Sidebar() {
           borderTop: "1px solid var(--border-subtle)",
         }}
       >
+        <ThemeToggle />
         <SidebarUser />
       </div>
       <CreateBoardDialog open={dialog.open} onClose={dialog.close} />
@@ -297,6 +299,37 @@ export function Sidebar() {
       <GlobalShortcuts />
       <Toast />
     </aside>
+  );
+}
+
+// Dark/light palette switch. Persists to localStorage (via useTheme) and
+// flips `data-theme` on <html>; the inline script in layout.tsx applies the
+// stored choice before first paint so there's no flash on reload.
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  const next = theme === "dark" ? "light" : "dark";
+  return (
+    <button
+      type="button"
+      className="side-item"
+      onClick={toggle}
+      title={`Switch to ${next} mode`}
+      aria-label={`Switch to ${next} mode`}
+      style={{
+        width: "100%",
+        background: "transparent",
+        border: "none",
+        cursor: "pointer",
+        font: "inherit",
+        color: "var(--fg2)",
+        marginBottom: 4,
+      }}
+    >
+      <Icon name={theme === "dark" ? "sun" : "moon"} size={16} />
+      <span style={{ fontSize: 13 }}>
+        {theme === "dark" ? "Light mode" : "Dark mode"}
+      </span>
+    </button>
   );
 }
 

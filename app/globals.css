@@ -2638,3 +2638,87 @@ textarea.field-input {
 .search-footer .kbd {
   margin-right: 4px;
 }
+
+/* ============================================================
+   Light theme
+   Overrides the semantic tokens for `data-theme="light"` on <html>. Only
+   tokens that change between themes are redefined; brand hues, type stacks and
+   layout tokens are inherited from :root. Palette tuned for high text/bg
+   contrast (WCAG AA on body + muted text) — legibility is the whole point of
+   this theme. Comes after :root so it wins the equal-specificity cascade.
+   ============================================================ */
+[data-theme="light"] {
+  --bg-marketing: #ffffff;
+  --bg-marketing-deep: #eceef1;
+  --bg-panel: #f7f8fa;
+  --bg-surface: #ffffff;
+  --bg-surface-2: #eef0f3;
+
+  /* Overlays tint with black over light surfaces (white-on-white was invisible). */
+  --surface-02: rgba(0, 0, 0, 0.02);
+  --surface-04: rgba(0, 0, 0, 0.03);
+  --surface-05: rgba(0, 0, 0, 0.04);
+  --surface-08: rgba(0, 0, 0, 0.06);
+
+  /* AA on #ffffff: fg1 ~15:1, fg2 ~9:1, fg3 ~5:1, fg4 ~4:1 */
+  --fg1: #17181a;
+  --fg2: #3b4048;
+  --fg3: #5c616a;
+  --fg4: #71767f;
+
+  --border-1: #e4e6ea;
+  --border-2: #d3d7dd;
+  --border-3: #bfc4cc;
+  --line-tint: #eef0f3;
+  --line-2: #e7e9ed;
+
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --border-standard: rgba(0, 0, 0, 0.1);
+  --border-strong: rgba(0, 0, 0, 0.14);
+
+  /* Modal backdrop stays a dark scrim. */
+  --overlay: rgba(15, 18, 22, 0.45);
+
+  /* Darker red so danger text/border keeps contrast on white. */
+  --danger: #c23b3b;
+  --danger-hi: #a02c2c;
+
+  /* Accent tints nudged up so indigo stays visible on white. */
+  --accent-ring: rgba(94, 106, 210, 0.28);
+  --accent-halo: rgba(94, 106, 210, 0.22);
+  --accent-fill-soft: rgba(94, 106, 210, 0.08);
+  --accent-fill: rgba(94, 106, 210, 0.1);
+  --accent-fill-strong: rgba(94, 106, 210, 0.16);
+  --accent-fill-active: rgba(94, 106, 210, 0.32);
+  --accent-border-soft: rgba(94, 106, 210, 0.28);
+  --accent-border: rgba(94, 106, 210, 0.5);
+  --accent-border-strong: rgba(94, 106, 210, 0.6);
+  --accent-line: rgba(94, 106, 210, 0.7);
+
+  --danger-fill-soft: rgba(194, 59, 59, 0.08);
+  --danger-fill: rgba(194, 59, 59, 0.1);
+  --danger-border: rgba(194, 59, 59, 0.35);
+  --danger-ring: rgba(194, 59, 59, 0.22);
+
+  --status-emerald-fill: rgba(16, 185, 129, 0.1);
+  --status-emerald-border: rgba(16, 185, 129, 0.35);
+
+  /* Softer elevation — near-opaque blacks look harsh over light surfaces. */
+  --shadow-c-30: rgba(23, 24, 26, 0.08);
+  --shadow-c-40: rgba(23, 24, 26, 0.1);
+  --shadow-c-45: rgba(23, 24, 26, 0.12);
+  --shadow-c-50: rgba(23, 24, 26, 0.14);
+  --shadow-c-60: rgba(23, 24, 26, 0.18);
+
+  --shadow-dialog:
+    rgba(0, 0, 0, 0) 0px 8px 2px, rgba(0, 0, 0, 0.02) 0px 5px 2px,
+    rgba(0, 0, 0, 0.06) 0px 3px 2px, rgba(0, 0, 0, 0.1) 0px 1px 1px,
+    rgba(0, 0, 0, 0.12) 0px 0px 1px;
+}
+
+/* Smooth the palette switch so the toggle doesn't hard-cut. */
+body {
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
