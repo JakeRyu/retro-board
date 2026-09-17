@@ -32,12 +32,15 @@ import {
 } from "./BoardSettingsMenu";
 import { Sidebar } from "./Sidebar";
 import { Avatar, Icon } from "./Primitives";
+import { EnergyPill } from "./EnergyPill";
+import { EnergyResultModal } from "./EnergyResultModal";
 import { useSession } from "next-auth/react";
 import type { Board, Card as CardType, Column as ColumnT, Voter } from "../_data/retro";
 import { initialsFromName, colorFromName } from "../_lib/avatar";
 import { storeActions, useBoard, useBoardPolling } from "../_data/store";
 import { useIsOwner } from "../_hooks/useIsOwner";
 import { usePresencePolling } from "../_hooks/usePresencePolling";
+import { useEnergyCheckIn } from "../_hooks/useEnergyCheckIn";
 import { fireToast } from "../_hooks/useToast";
 import { useOverlayDismiss } from "../_hooks/useOverlayDismiss";
 import { requestAddCard } from "../_hooks/useAddCardRequest";
@@ -173,6 +176,18 @@ function RetroAppLoaded({ board }: { board: Board }) {
   // Who else is viewing this board right now. Refreshed every 5s; the
   // heartbeat is the existing 1.5s board GET, so this hook only reads.
   const presenceUsers = usePresencePolling(board.id);
+
+  // Anonymous energy check-in. Polled separately from the board because the
+  // ballots deliberately live outside the board document.
+  const energy = useEnergyCheckIn(board.id, !closed);
+  const [energyResultOpen, setEnergyResultOpen] = useState(false);
+  // The reveal is a shared moment — the poll carries the flip to every client,
+  // so the modal opens for the whole team at once, not just the facilitator.
+  const wasRevealed = useRef(false);
+  useEffect(() => {
+    if (energy.revealed && !wasRevealed.current) setEnergyResultOpen(true);
+    wasRevealed.current = energy.revealed;
+  }, [energy.revealed]);
 
   const [anonymous, setAnonymous] = useState(false);
   const [themeOpen, setThemeOpen] = useState(true);
@@ -942,6 +957,14 @@ function RetroAppLoaded({ board }: { board: Board }) {
             )}
 
             {!closed && (
+              <EnergyPill
+                energy={energy}
+                isOwner={isOwner}
+                onOpenResult={() => setEnergyResultOpen(true)}
+              />
+            )}
+
+            {!closed && (
               <button
                 className="anon-toggle"
                 data-on={anonymous}
@@ -1129,6 +1152,12 @@ function RetroAppLoaded({ board }: { board: Board }) {
         )}
 
       </div>
+
+      <EnergyResultModal
+        open={energyResultOpen}
+        energy={energy}
+        onClose={() => setEnergyResultOpen(false)}
+      />
 
       {/* close-board confirm */}
       <div

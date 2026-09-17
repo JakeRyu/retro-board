@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { boardsContainer, stripSystemFields } from "@/lib/cosmos";
 import { touch as touchPresence } from "@/lib/presence";
+import { touchRoster } from "@/lib/energyCheckin";
 import type { Board } from "@/app/_data/retro";
 
 export const runtime = "nodejs";
@@ -44,6 +45,11 @@ export async function GET(
   // whose state hasn't changed still keeps the viewer in the active set.
   if (session.user.id && session.user.name) {
     touchPresence(id, session.user.id, session.user.name);
+  }
+  // Same heartbeat feeds the energy check-in denominator, so "X of Y voted"
+  // needs no board member list.
+  if (session.user.id) {
+    touchRoster(id, session.user.id);
   }
 
   const board = await findBoardById(id);
