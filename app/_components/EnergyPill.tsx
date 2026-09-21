@@ -54,7 +54,7 @@ export function EnergyPill({ energy, isOwner, onOpenResult }: EnergyPillProps) {
     return () => document.removeEventListener("keydown", onKey);
   }, [confirmForce]);
 
-  const { count, total, mine, revealed, result } = energy;
+  const { count, total, mine, revealed } = energy;
   const aboveFloor = count >= MIN_REVEAL_VOTES;
   const everyoneVoted = count > 0 && count >= total;
   const canReveal = isOwner && !revealed && aboveFloor && everyoneVoted;
@@ -83,10 +83,11 @@ export function EnergyPill({ energy, isOwner, onOpenResult }: EnergyPillProps) {
               : "Vote your energy for this sprint"
         }
       >
-        {revealed && result ? (
+        {revealed ? (
           <>
-            <EnergyBattery percent={result.percent} />
-            <span className="energy-count">{result.percent}%</span>
+            <BoltGlyph />
+            <span>Results</span>
+            <span className="energy-count">{count}</span>
           </>
         ) : mine !== null ? (
           <>

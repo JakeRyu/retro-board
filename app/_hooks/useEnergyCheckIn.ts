@@ -5,8 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export type EnergyLevel = 1 | 2 | 3 | 4 | 5;
 
 export type EnergyResult = {
-  average: number;
-  percent: number;
   distribution: number[];
 };
 

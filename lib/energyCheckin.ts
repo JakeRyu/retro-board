@@ -19,10 +19,6 @@ import { createHmac } from "node:crypto";
 export type EnergyLevel = 1 | 2 | 3 | 4 | 5;
 
 export type EnergyResult = {
-  average: number;
-  /** average / 5 × 100 — a lone level-1 vote reads as a 20%-charged battery
-   *  rather than a flat-empty one. */
-  percent: number;
   /** Counts for levels 1–5 at indices 0–4. */
   distribution: number[];
 };
@@ -137,15 +133,8 @@ export function snapshot(boardId: string, userId: string): EnergySnapshot {
 
 function tally(s: BoardState): EnergyResult {
   const distribution = [0, 0, 0, 0, 0];
-  let sum = 0;
   for (const level of s.ballots.values()) {
     distribution[level - 1]++;
-    sum += level;
   }
-  const average = s.ballots.size === 0 ? 0 : sum / s.ballots.size;
-  return {
-    average,
-    percent: Math.round((average / 5) * 100),
-    distribution,
-  };
+  return { distribution };
 }
